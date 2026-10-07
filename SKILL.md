@@ -254,6 +254,7 @@ python scripts/download.py https://github.com/Him666233/astrbot_plugin_group_cha
 | NapCat 安装器窗口 | Phase 6 步骤 2 | **用户** | **用户点安装**；装完回"装好了"；**窗口可关** |
 | NapCat 扫码窗口 | Phase 6 步骤 3 | **用户** | **用小号扫码**；**登录成功前千万别关**；成功后窗口保留（协议端服务本体） |
 | NapCat 常驻窗口（标题 `qqaibot-NapCat`） | Phase 6 步骤 5 重启后 | agent 拉起 | **保留**（协议端服务本体） |
+| bot 的 QQ 客户端窗口（标题 `qqaibot-QQ-<QQ号>`） | NapCat 启动登录后 | 自动改名 | **保留**。启动时后台自动改名（防与主号 QQ 混淆，尽力而为——QQ 可能自己改回标题，改名失败不影响功能）；`kill_napcat` 会连这个窗口的进程一起定位杀掉 |
 
 **交付后日常（关机器人关哪些窗口，必须原话告知用户）**（Phase 8 配好 bot_manager 后）：桌面上同时存在 3 个窗口，职责各不同——
 - `qqaibot-AstrBot`、`qqaibot-NapCat`：两个**服务本体**窗口。**关闭机器人 = 控制台按 `[2]`（推荐，反序杀干净）**；或者直接手关这两个窗口（等效强停对应组件，可行但非首选）。**不要只关其一**（会留半停状态，Bot 不响应却占着端口）。

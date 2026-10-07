@@ -43,6 +43,44 @@ BAT_NAPCAT = "start_napcat.bat"
 RUNTIME_DIR = ".bot_runtime"   # 启动 bat 的存放目录（内部产物，用户不需要碰）
 CONSOLE_BAT = "机器人启动.bat"   # 用户双击入口：双击即启动，然后进菜单
 CONSOLE_BAT_OLD = ("机器人控制台.bat",)   # 历史命名，生成时顺手清掉
+RENAME_PS1 = "rename_qq_window.ps1"   # QQ 窗口改名辅助脚本（后台尽力而为）
+
+# QQ 窗口改名脚本（ASCII only——PS5.1 对无 BOM 文件按 ANSI 读，中文会乱码）。
+# 原理：QQ 主窗口标题会被 QQ 自己重设（登录前后都变），所以轮询多轮用
+# WM_SETTEXT 改成 qqaibot- 前缀的唯一标题；改名失败不影响任何功能
+# （进程定位主力始终是 cmdline/路径，标题只是任务栏辨识 + kill 的补充手段）。
+PS1_CONTENT = r'''
+param(
+  [string]$root = "",
+  [string]$title = "qqaibot-QQ",
+  [int]$tries = 12
+)
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public class W {
+  [DllImport("user32.dll", SetLastError=true)]
+  public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, string lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
+}
+'@
+$rootL = $root.ToLower()
+for ($i = 0; $i -lt $tries; $i++) {
+  Start-Sleep -Seconds 5
+  $procs = Get-CimInstance Win32_Process -Filter "Name='QQ.exe'" | Where-Object {
+    ($_.ExecutablePath -and $_.ExecutablePath.ToLower().Contains($rootL)) -or
+    ($_.CommandLine -and $_.CommandLine.ToLower().Contains($rootL))
+  }
+  if (-not $procs) { continue }
+  foreach ($p in $procs) {
+    $gp = Get-Process -Id $p.ProcessId -ErrorAction SilentlyContinue
+    if ($gp -and $gp.MainWindowHandle -ne [IntPtr]::Zero) {
+      $r = [IntPtr]::Zero
+      [W]::SendMessageTimeout($gp.MainWindowHandle, 0x000C, [IntPtr]::Zero, $title, 2, 2000, [ref]$r) | Out-Null
+    }
+  }
+  if ($i -ge 3) { break }   # 前几轮多改几次防 QQ 登录后覆盖，之后停
+}
+'''
 
 DASH_PORT = "6185"   # AstrBot WebUI
 WS_PORT = "6199"     # AstrBot 反向 WS（NapCat 连这里）
@@ -228,14 +266,44 @@ def cmd_kill_astrbot(cfg, base=None):
     return 0 if not left else 1
 
 
+def ensure_rename_ps1(runtime):
+    """落地 QQ 窗口改名辅助脚本（ASCII only，避免 PS5.1 无 BOM 编码坑）。"""
+    p = os.path.join(runtime, RENAME_PS1)
+    with open(p, "w", encoding="ascii", errors="replace") as f:
+        f.write(PS1_CONTENT)
+    return p
+
+
+def qq_pids_by_title():
+    """按唯一窗口标题前缀找 bot 的 QQ.exe（qqaibot- 前缀含 QQ 号，精确无 C6 误杀风险）。
+
+    作为 cmdline/路径匹配的补充兜底——只认我们亲手改过的标题前缀。
+    """
+    ps = ("Get-Process -Name QQ -ErrorAction SilentlyContinue | "
+          "Where-Object { $_.MainWindowTitle -like 'qqaibot-*' } | "
+          "Select-Object -ExpandProperty Id")
+    try:
+        out = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", ps],
+            capture_output=True, text=True, errors="replace", timeout=20
+        ).stdout
+    except Exception:
+        return []
+    return [l.strip() for l in out.splitlines() if l.strip().isdigit()]
+
+
 def cmd_kill_napcat(cfg, base=None):
-    """只杀 NapCat：napcat 目录下的 QQ.exe + napcat 相关 bat 残留窗口。"""
+    """只杀 NapCat：napcat 目录下的 QQ.exe（cmdline/路径/唯一标题三重定位）+ napcat 相关 bat 残留窗口。"""
     nc_root = (cfg.get("napcat_root") or "").strip()
     if nc_root:
         qq = napcat_qq_pids(nc_root)
-        for pid in qq:
+        by_title = [p for p in qq_pids_by_title() if p not in qq]
+        for pid in qq + by_title:
             kill_tree(pid)
-        log(f"[清理] NapCat(QQ.exe): {'已杀 ' + str(len(qq)) + ' 个进程' if qq else '未在运行'}")
+        msg = f"已杀 {len(qq) + len(by_title)} 个进程" if (qq or by_title) else "未在运行"
+        if by_title:
+            msg += f"（{len(by_title)} 个按窗口标题定位）"
+        log(f"[清理] NapCat(QQ.exe): {msg}")
         # napcat 目录下一切 .bat 的 cmd 窗口（napcat.bat / napcat.quick.bat / 我们的启动 bat）
         root = nc_root.rstrip("\\").replace("'", "''")
         where = "$_.CommandLine -like '*%s*' -and $_.CommandLine -like '*.bat*'" % root
@@ -299,6 +367,19 @@ def cmd_start(cfg, base):
                     f'call napcat.quick.bat\r\npause\r\n')
         subprocess.run(["cmd", "/c", "start", "", bat], check=False)  # 空标题，同 AstrBot 处的坑
         log("[启动] NapCat 新窗口已打开（quick 免扫码登录；首次部署请按 SKILL.md Phase 6 用 napcat.bat 扫码）")
+        # 后台尽力把 bot 的 QQ 窗口标题改成 qqaibot-QQ-<QQ号>（防与主号 QQ 混淆）；
+        # QQ 登录前后会自己重设标题，ps1 内部轮询多轮；失败不影响功能
+        qq_no = str(cfg.get("qq") or "").strip()
+        qq_title = f"qqaibot-QQ-{qq_no}" if qq_no else "qqaibot-QQ"
+        try:
+            ps1 = ensure_rename_ps1(runtime_dir(base))
+            subprocess.Popen(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                 "-File", ps1, "-root", nc_root, "-title", qq_title],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            log(f"[启动] bot 的 QQ 窗口将在登录后自动改名为 {qq_title}（任务栏辨识用，失败不影响功能）")
+        except Exception as e:
+            log(f"[提示] QQ 窗口改名任务未能启动（不影响功能）: {e}")
     log("[完成] 启动流程已执行。停止请用: python bot_manager.py stop")
     return 0
 

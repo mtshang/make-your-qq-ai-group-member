@@ -171,6 +171,7 @@
 - **症状**：本想杀某个实例，结果连别的窗口/进程一起被带走（实测两次误杀，其中一次杀掉刚扫码成功的登录态 → 第 4 次扫码）。
 - **原因**：`taskkill /FI "WINDOWTITLE eq xxx"` 的标题匹配是模糊语义，命中范围比预期宽；自写 kill 脚本还容易被误当状态检查跑一遍。
 - **解决**：杀 NapCat/AstrBot **一律走 `bot_manager.py stop`**（AstrBot 按端口定位 PID、NapCat 按 cmdline 含安装目录过滤，精确不误伤）；必须手写 kill 时，先列出命中的 PID **逐个确认**再杀，绝不按窗口标题批量杀。**刚扫码成功的实例是登录态所在，杀它 = 重新扫码**。
+- **例外（精确标题）**：bot 的 QQ 窗口会被 `bot_manager` 自动改名为 `qqaibot-QQ-<QQ号>`（含唯一 QQ 号），按这个前缀 `MainWindowTitle -like 'qqaibot-*'` 定位是**精确匹配**，与上面的模糊标题误杀是两回事——`kill_napcat` 已把它作为 cmdline/路径匹配的补充手段。注意 QQ 窗口标题可能被 QQ 自己改回，改名是尽力而为，**进程定位主力永远是 cmdline/路径**。
 
 ### C7. quick.bat 里硬编码占位账号（不改 = 交付后每次重启都要扫码）
 - **原因**：OneKey 装出的 `napcat.quick.bat` 里 `-q 10086` 是**占位号硬编码**，模板/安装器都不会替你改。
