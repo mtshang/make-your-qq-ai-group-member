@@ -36,7 +36,7 @@ QQ 好友/群聊
    |---|---|
    | **WorkBuddy** | 直接把文件夹/zip 拖进对话 |
    | **终端类 Agent**（Claude Code / Codex 等，推荐） | 发文件夹路径或 zip，说「读 SKILL.md 按流程执行」 |
-   | **其他桌面版 Agent**（有交互操作窗口的软件） | 同上：把文件夹/zip 给它 + 说「读 SKILL.md 按流程执行」 |
+   | **其他桌面版 Agent**（有交互窗口的软件） | 把文件夹/zip 给它 + 说「读 SKILL.md 按流程执行」，**并补一句：「全程用 PowerShell/Python 命令行完成，不要模拟鼠标键盘操作 GUI，出任何报错立即停下问我」**——桌面 Agent 默认爱用"模拟人点界面"的范式，而本 skill 的坑几乎全是命令行细节坑，命令行范式能把出错率降一个量级 |
    | **Claude Code**（可选安装式） | 解压到 `~/.claude/skills/`（全局）或项目 `.claude/skills/` 下，新会话自动识别，可 `/make-your-qq-ai-group-member` 调用 |
 
 3. Agent 会依次问你三件事：**bot 用的 QQ 小号**、**大模型 API key**（没有会给你创建引导，推荐 DeepSeek）、**安装到哪个目录**（默认 `D:\qqaibot`）
