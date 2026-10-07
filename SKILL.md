@@ -378,6 +378,7 @@ python bot_manager.py kill_napcat    只杀 NapCat（含残留启动窗口）
 1. **补全配置**：`$INSTALL\deploy_state.json` 在 Phase 3 已创建，把两个空字段填上：`napcat_shell_dir` → Phase 6 装出的实际目录（如 `D:\qqaibot\napcat\NapCat.52230.Shell`）；`napcat_root` → `$INSTALL\napcat`。同时把 `qq` 字段填上（Phase 6 已读到）。填完 `status` 应能探测 NapCat（STOPPED 属正常）。
 2. **验证**：先跑 `status` 看状态——AstrBot 应 STOPPED；**NapCat 若仍是 RUNNING（Phase 6 留下的登录态）不要硬 stop**（杀登录实例 = 重新扫码，pitfalls C5/C6）。直接跑 `start` 完整验证即可：它自带"先杀再启"（NapCat 免扫码重启，pitfalls C7），跑完 `status` 两项应 RUNNING。**stop/kill 会真杀进程，只能在部署完成、确认无其他业务共用时执行**。
 3. **交付话术**：日常开机用 `start`，关机/维护用 `stop`；**首次扫码和调试仍按 Phase 5/6 原方式**（napcat.bat 扫码需要 NapCat 自己的窗口交互）。
+4. **交付前必须停掉 agent 自己的保活后台任务**（沙箱 agent 部署期用来撑进程的，pitfalls B8）——它是"进程死了就重新拉起"的循环，交付后若还在运行，用户跑 `start` 杀掉的实例会被它再次拉起，两套实例叠加 → 同号互踢（C5）复发。**判别特征：某实例被杀后带着新 PID 复活**（实测：杀 PID 6464 → 复活成 41956）。停掉保活后用户再跑 start，才算真正接管。
 
 > 设计边界：刻意不做"单窗口聚合两进程日志"——NapCat 首次登录要交互、两进程输出编码不同、Windows 下 Ctrl+C 信号转发不可靠。独立窗口 + 一键启停是可靠性最优解。
 
