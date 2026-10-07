@@ -69,7 +69,7 @@ QQ 好友/群聊
    - 「凭据授权窗口弹在你屏幕上了，请完成 GitHub 登录后回复我"好了"」
    - 「NapCat 安装器窗口弹出来了，它启动后自动安装，你不用点任何东西；卡住或报错告诉我」
    - 「扫码窗口出现了，请用**小号**扫码，扫完说一声」
-   - 「这一步我自己修不了，需要你把 AstrBot 窗口最后 20 行日志发给我」
+   - 「日志文件里看不出原因，请你把 AstrBot 窗口最后几行发我」
 3. **自己修好的也要报备**：自动重试成功、自动修正了路径之类，补一句「刚才 X 失败，已自动 Y，你无需操作」——保持信息透明，不许装作没发生。
 4. **等待用户时明确说在等什么，说完就结束回复停下来等**：不要用模糊的"稍等"，要说清在等哪个动作完成（如「等你扫码」vs「等 WebUI 端口起来，约 1 分钟」）。**区分两种等待**：等机器（端口/进程/下载）→ agent 可以轮询、用后台任务自动推进；**等人动手（扫码/点窗口/看报错）→ 行动项说完立刻结束本轮回复，把控制权交还用户，不许自己卡着思考或空转轮询**——用户回话了才继续。
 5. **一切状态落进 `deploy_state.json`**：开工确认后立刻在 `$INSTALL` 创建它（模板 `templates/deploy_state.json`），此后：
@@ -285,6 +285,18 @@ python <skill目录>\scripts\download.py https://github.com/Him666233/astrbot_pl
 - `qqaibot 机器人启动`（控制台窗口）：只是操作面板，**随时可关，不影响机器人运行**。
 `stop`/`kill`/关窗口后，服务窗口若停在按键提示，随手关掉即可（再次 `start` 时也会自动清掉）。
 
+**日志判读一览（排障先读文件，窗口是最后手段）**——判读服务状态优先读日志文件，别动不动请用户抄窗口：
+
+| 信息 | 去哪读 |
+|---|---|
+| AstrBot：ERROR / 人格加载 / WebSocket 连接 | `$INSTALL\astrbot\data\logs\astrbot.log`（模板已开文件日志） |
+| NapCat：quick 登录成败 / WS 客户端连接 | `<napcat_shell_dir>\log\`（步骤 5 已开 `fileLog`；此前版本默认关着，日志只在窗口里） |
+| NapCat core 是否活着 | WebUI 端口 `6099` 有响应即 core 活着（`verify.py port 6099`） |
+| 部署状态/进度 | `$INSTALL\deploy_state.json`（单一来源） |
+
+- **为什么不给启动 bat 加输出重定向/管道**：stdout 接管道会弄死二维码的终端渲染（pitfalls C4），所以 NapCat 走它自带的 fileLog、AstrBot 走自带日志文件——窗口保持原样给用户看，agent 读文件。
+- **请用户看窗口是最后手段**：只有日志文件里没有的信息（二维码渲染效果、交互式提示）才请用户看/截图，话术按行为约定第 2 条。
+
 ## Phase 5：启动 AstrBot（两次启动法）
 
 **第一次启动**（建立数据库 + 自动装插件依赖）——**bot_manager 从当前工作目录读 deploy_state.json，所以一律在 `$INSTALL` 下跑**（单条自包含命令，与 B1 同哲学，不依赖 shell 状态）：
@@ -350,7 +362,7 @@ Set-Location '<INSTALL>'; python '<skill目录>\scripts\bot_manager.py' start
    下生成 `onebot11_<QQ号>.json` / `napcat_<QQ号>.json`——从文件名直接读出 QQ 号（记为 `$QQ`）。**立刻写进 deploy_state.json** 的 `qq` 字段（`napcat_shell_dir`/`napcat_root` 已在步骤 2 回填，确认无误即可）。
    **读号后立刻改 `napcat.quick.bat` 的占位账号**：OneKey 硬编码 `-q 10086`，把占位号替换为 `$QQ`（Python/编辑器均可）——不改则交付后用户每次重启都要重新扫码（pitfalls C7）。
 
-5. **注入反连配置**：NapCat 生成的配置里没有反向 WS 设置。用脚本把模板的 `network.websocketClients` 合并进生成的 `onebot11_$QQ.json`（其余字段保持原样）：
+5. **注入反连配置**：NapCat 生成的配置里没有反向 WS 设置。用脚本把模板的 `network.websocketClients` 合并进生成的 `onebot11_$QQ.json`（其余字段保持原样），**顺手打开 NapCat 文件日志（`fileLog`，默认关着——不开的话日志只在窗口里，agent 排障就得求用户抄窗口，实测教训）**：
    ```python
    import json, io
    src = json.load(io.open(r"<skill目录>\templates\napcat_onebot11.json", encoding="utf-8-sig"))
@@ -358,6 +370,11 @@ Set-Location '<INSTALL>'; python '<skill目录>\scripts\bot_manager.py' start
    d = json.load(io.open(p, encoding="utf-8-sig"))
    d["network"]["websocketClients"] = src["network"]["websocketClients"]
    io.open(p, "w", encoding="utf-8").write(json.dumps(d, ensure_ascii=False, indent=2))
+
+   q = r"<config目录>\napcat_<QQ>.json"       # 同目录
+   n = json.load(io.open(q, encoding="utf-8-sig"))
+   n["fileLog"] = True                        # 日志落 <shell_dir>\log\，排障首选读文件
+   io.open(q, "w", encoding="utf-8").write(json.dumps(n, ensure_ascii=False, indent=2))
    ```
    然后重启 NapCat：`python <skill目录>\scripts\bot_manager.py start`（自带先杀后启，内部走 quick.bat 免扫码）——**不要手动跑 napcat.quick.bat**。
    备选：也可在 NapCat WebUI「网络配置」页手动加反向 WS（`ws://127.0.0.1:6199/ws`），效果相同。
@@ -365,8 +382,8 @@ Set-Location '<INSTALL>'; python '<skill目录>\scripts\bot_manager.py' start
 6. **管理员确认**：`admins_id` 在 Phase 3 已填入**用户大号**（不是 bot 号）——确认占位符已替换；若用户开工时选了"稍后提供"，此处**必须**问一次大号 QQ 并补填，**重启 AstrBot**（`bot_manager.py stop` → `start`）。没有管理员时部分管理指令无人可用，且交付话术里"管理权限"一项不成立。完成后把 `progress.phase6_link_up` 改 `done`。
 
 7. **验证打通**：
-   - NapCat 窗口显示登录成功；
-   - AstrBot 日志出现 WebSocket 连接成功行（ NapCat → `ws://127.0.0.1:6199/ws`，必须带 `/ws`，pitfalls C2）；
+   - NapCat 日志（`<shell_dir>\log\`）或窗口显示登录成功；
+   - AstrBot 日志（`astrbot\data\logs\astrbot.log`）出现 WebSocket 连接成功行（ NapCat → `ws://127.0.0.1:6199/ws`，必须带 `/ws`，pitfalls C2）；
    - `verify.py port 6199` 在 AstrBot 侧监听中；
    - WebUI「平台适配器」→ 消息平台在线。
 
