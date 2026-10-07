@@ -1,6 +1,0 @@
-{
-  "astrbot_root": "<INSTALL>\\astrbot",
-  "astrbot_exe": "<ASTRBOT_EXE>",
-  "napcat_shell_dir": "<INSTALL>\\napcat\\NapCat.<构建号>.Shell",
-  "napcat_root": "<INSTALL>\\napcat"
-}

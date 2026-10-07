@@ -1,0 +1,23 @@
+{
+  "_readme": "部署状态单一来源（Single Source of Truth）。agent 每完成一步就更新对应字段/进度；所有判读优先读本文件而不是读终端输出。api_key 只记 set/unset 不存明文。",
+  "install_root": "",
+  "astrbot_root": "",
+  "astrbot_exe": "",
+  "napcat_root": "",
+  "napcat_shell_dir": "",
+  "qq": "",
+  "api_key_set": false,
+  "progress": {
+    "phase0_env_check": "pending",
+    "phase2_astrbot_init": "pending",
+    "phase3_config": "pending",
+    "phase4_plugin": "pending",
+    "phase5_first_run_db": "pending",
+    "phase5_persona": "pending",
+    "phase5_final_run": "pending",
+    "phase6_napcat_scan": "pending",
+    "phase6_link_up": "pending",
+    "phase7_acceptance": "pending",
+    "phase8_launcher": "pending"
+  }
+}

@@ -50,6 +50,10 @@ QQ 好友/群聊
    - 「这一步我自己修不了，需要你把 AstrBot 窗口最后 20 行日志发给我」
 3. **自己修好的也要报备**：自动重试成功、自动修正了路径之类，补一句「刚才 X 失败，已自动 Y，你无需操作」——保持信息透明，不许装作没发生。
 4. **等待用户时明确说在等什么**：不要用模糊的"稍等"，要说清在等哪个动作完成（如「等你扫码」vs「等 WebUI 端口起来，约 1 分钟」）。
+5. **一切状态落进 `deploy_state.json`**：开工确认后立刻在 `$INSTALL` 创建它（模板 `templates/deploy_state.json`），此后：
+   - **每完成一个 Phase**，把 `progress` 里对应字段改成 `done`，并把新获得的路径/QQ 号写进对应字段；
+   - **判读结果优先读这个文件**（文件读写对所有 agent 都可靠），读终端回显/扫日志只作兜底——GUI 型 agent 读屏易错，命令式 agent 也省得翻历史输出；
+   - 中断恢复时**先读它**：progress 里第一个非 `done` 的 Phase 就是断点，从那里继续，已完成步骤不要重做。
 
 ## 前置条件（Phase 0 检查）
 
@@ -156,26 +160,15 @@ uv tool install astrbot --python 3.12
 
 **设置 `ASTRBOT_ROOT`（在 `astrbot init` 之前！**，详见 pitfalls B1，这是最容易踩的坑）：
 
-- PowerShell：
+- **推荐：单条自包含命令**——变量和 init 绑在同一条命令里，子进程必然继承，**完全不依赖 shell 会话状态**（GUI 型/命令式 agent 通吃）：
   ```powershell
-  $env:ASTRBOT_ROOT = "$INSTALL\astrbot"
-  [Environment]::SetEnvironmentVariable("ASTRBOT_ROOT", "$INSTALL\astrbot", "User")
+  powershell -Command "$env:ASTRBOT_ROOT='<INSTALL>\astrbot'; & '<astrbot_exe>' init -y"
   ```
-- cmd：`set ASTRBOT_ROOT=$INSTALL\astrbot` 且 `setx ASTRBOT_ROOT "$INSTALL\astrbot"`
-
-**防呆验证（init 前必须）**——命令式 agent 的 shell 会话可能不共享变量，别假设它生效：
-```
-python -c "import os; print(os.environ.get('ASTRBOT_ROOT'))"
-```
-输出必须是 `$INSTALL\astrbot`。为空或不对 → 停下重设（`set`/`$env:` 管当前会话，`setx` 管新进程，两个都做过才能保证任何 shell 拉起的 astrbot 都看得到）。
-
-```powershell
-astrbot init -y
-```
-
-- **`-y` 必须带**：跳过交互式确认（不带的话命令会卡在提问，agent 场景直接挂起）。
-- `astrbot` 命令找不到 → 新开 shell，或用 `%USERPROFILE%\.local\bin\astrbot.exe`。
-- 验证：`verify.py file "$INSTALL\astrbot\data"` 目录已生成。
+  （`<astrbot_exe>` 用完整路径，如 `%USERPROFILE%\.local\bin\astrbot.exe`，连 PATH 问题一起绕开）
+- setx 持久化仍做一次（给用户以后手动跑 astrbot 的场景兜底，对当前会话无效只影响新进程）：
+  cmd：`setx ASTRBOT_ROOT "<INSTALL>\astrbot"`
+- **防呆验证**：`verify.py file "$INSTALL\astrbot\data"` 目录已生成即成功。若 init 生成到了别处（如用户主目录），说明变量没带上——删掉错误目录，用上面的单条命令重来（别再用会话变量方式）。
+- **`-y` 必须带**：跳过交互式确认（不带的话 init 卡在提问，agent 场景直接挂起）。
 
 ## Phase 3：铺配置模板 + 替换变量
 
@@ -201,9 +194,10 @@ io.open(p, "w", encoding="utf-8-sig").write(
 
 验证：`verify.py json` 两个文件均可解析；`verify.py jsonkey cmd_config.json platform` 等抽查。
 
-**生成启停器配置**（Phase 5 的启动全靠它，顺手一起做）：把 `templates/bot_manager.json` 复制到 `$INSTALL\bot_manager.json`，填两个字段：
+**创建部署状态文件**（Phase 5 的启动全靠它；这也是全程的断点记录）：把 `templates/deploy_state.json` 复制到 `$INSTALL\deploy_state.json`，填两个字段：
 - `astrbot_root` → `$INSTALL\astrbot`；`astrbot_exe` → astrbot.exe 实际路径（uv 默认 `%USERPROFILE%\.local\bin\astrbot.exe`）
 - `napcat_shell_dir` / `napcat_root` → **暂留空字符串**（Phase 6 装完 NapCat 回填），bot_manager 会自动只启动 AstrBot
+- 把 `progress.phase3_config` 改为 `done`。此后每完成一步都更新对应进度字段（行为约定第 5 条）
 
 模板已预置的关键配置（**不要乱动**）：
 - 平台：仅 `qq-napcat`（aiocqhttp，反向 WS 监听 `127.0.0.1:6199`，仅本机可连，无防火墙弹窗）
@@ -267,7 +261,7 @@ python <skill目录>\scripts\bot_manager.py start
    ```
    NapCat.*.Shell\versions\*\resources\app\napcat\config\
    ```
-   下生成 `onebot11_<QQ号>.json` / `napcat_<QQ号>.json`——从文件名直接读出 QQ 号（记为 `$QQ`）。
+   下生成 `onebot11_<QQ号>.json` / `napcat_<QQ号>.json`——从文件名直接读出 QQ 号（记为 `$QQ`）。**立刻写进 deploy_state.json**：`qq` 填号、`napcat_shell_dir`/`napcat_root` 填实际路径。
 
 5. **注入反连配置**：NapCat 生成的配置里没有反向 WS 设置。用脚本把模板的 `network.websocketClients` 合并进生成的 `onebot11_$QQ.json`（其余字段保持原样）：
    ```python
@@ -281,7 +275,7 @@ python <skill目录>\scripts\bot_manager.py start
    然后重启 NapCat：关掉旧窗口，重新跑 `napcat.quick.bat`（已登录免扫码）。
    备选：也可在 NapCat WebUI「网络配置」页手动加反向 WS（`ws://127.0.0.1:6199/ws`），效果相同。
 
-6. **回填管理员**：把 `$INSTALL\astrbot\data\cmd_config.json` 的 `<YOUR_QQ_NUMBER>` 替换为 `$QQ`（Python 脚本，utf-8-sig），**重启 AstrBot**（bot_manager stop/start 或手动）。
+6. **回填管理员**：把 `$INSTALL\astrbot\data\cmd_config.json` 的 `<YOUR_QQ_NUMBER>` 替换为 `$QQ`（Python 脚本，utf-8-sig），**重启 AstrBot**（`bot_manager.py stop` → `start`）。完成后把 `progress.phase6_link_up` 改 `done`。
 
 7. **验证打通**：
    - NapCat 窗口显示登录成功；
@@ -334,7 +328,7 @@ python bot_manager.py stop     反序停止：NapCat(QQ.exe) 先，AstrBot 后
 python bot_manager.py status   只读探测两服务状态
 ```
 
-1. **补全配置**：`$INSTALL\bot_manager.json` 在 Phase 3 已生成，把两个空字段填上：`napcat_shell_dir` → Phase 6 装出的实际目录（如 `D:\qqaibot\napcat\NapCat.52230.Shell`）；`napcat_root` → `$INSTALL\napcat`。填完 `status` 应能探测 NapCat（STOPPED 属正常）。
+1. **补全配置**：`$INSTALL\deploy_state.json` 在 Phase 3 已创建，把两个空字段填上：`napcat_shell_dir` → Phase 6 装出的实际目录（如 `D:\qqaibot\napcat\NapCat.52230.Shell`）；`napcat_root` → `$INSTALL\napcat`。同时把 `qq` 字段填上（Phase 6 已读到）。填完 `status` 应能探测 NapCat（STOPPED 属正常）。
 2. **验证**：先跑 `status`（应全部 STOPPED）→ `start`（两个新窗口弹出，status 变 RUNNING，AstrBot 窗口能看到启动日志）→ `stop`（恢复 STOPPED）。**stop 会真杀进程，只能在部署完成、确认无其他业务共用时执行**。
 3. **交付话术**：日常开机用 `start`，关机/维护用 `stop`；**首次扫码和调试仍按 Phase 5/6 原方式**（napcat.bat 扫码需要 NapCat 自己的窗口交互）。
 

@@ -28,7 +28,7 @@ import subprocess
 import sys
 import time
 
-CFG_NAME = "bot_manager.json"
+CFG_NAMES = ("deploy_state.json", "bot_manager.json")
 BAT_ASTRBOT = "start_astrbot.bat"
 BAT_NAPCAT = "start_napcat.bat"
 
@@ -41,13 +41,14 @@ def log(msg):
 
 
 def load_config():
-    # 依次找: 脚本同目录 -> 当前目录
+    # 依次找: 脚本同目录 -> 当前目录；deploy_state.json 优先，bot_manager.json 兼容旧部署
     for base in (os.path.dirname(os.path.abspath(__file__)), os.getcwd()):
-        p = os.path.join(base, CFG_NAME)
-        if os.path.exists(p):
-            with open(p, encoding="utf-8-sig") as f:
-                return json.load(f), base
-    log(f"[错误] 找不到 {CFG_NAME}（部署完成后由 agent 生成，含实际路径）")
+        for name in CFG_NAMES:
+            p = os.path.join(base, name)
+            if os.path.exists(p):
+                with open(p, encoding="utf-8-sig") as f:
+                    return json.load(f), base
+    log(f"[错误] 找不到 {' 或 '.join(CFG_NAMES)}（部署时由 agent 在 $INSTALL 下生成）")
     sys.exit(2)
 
 
