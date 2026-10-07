@@ -41,6 +41,7 @@ CFG_NAMES = ("deploy_state.json", "bot_manager.json")
 BAT_ASTRBOT = "start_astrbot.bat"
 BAT_NAPCAT = "start_napcat.bat"
 RUNTIME_DIR = ".bot_runtime"   # 启动 bat 的存放目录（内部产物，用户不需要碰）
+CONSOLE_BAT = "机器人控制台.bat"   # 用户双击入口（菜单式），任意命令运行时自动生成/刷新
 
 DASH_PORT = "6185"   # AstrBot WebUI
 WS_PORT = "6199"     # AstrBot 反向 WS（NapCat 连这里）
@@ -140,6 +141,41 @@ def clean_legacy_bat(base, name):
             log(f"[清理] 移除根目录旧启动脚本: {name}")
     except OSError:
         pass
+
+
+def ensure_console_bat(base):
+    """生成/刷新双击式控制台 bat（菜单式，用户唯一入口）。
+
+    任意 bot_manager 命令运行时都会刷新——挪动 skill 目录后重跑一次即可修正路径。
+    """
+    try:
+        manager = os.path.abspath(__file__)
+        # 注意：bat 里满是 %~dp0 / %choice% 这类字面 %，绝不能用 % 格式化，用 f-string
+        content = (
+            '@echo off\r\n'
+            'chcp 936 >nul\r\n'
+            'title qqaibot 机器人控制台\r\n'
+            'cd /d "%~dp0"\r\n'
+            ':menu\r\n'
+            'echo.\r\n'
+            'echo   ========= QQ AI 机器人控制台 =========\r\n'
+            'echo     [1] 启动机器人（自动清残留再启动）\r\n'
+            'echo     [2] 停止机器人\r\n'
+            'echo     [3] 查看运行状态\r\n'
+            'echo     [0] 退出控制台（不影响机器人）\r\n'
+            'echo   ======================================\r\n'
+            'set "choice="\r\n'
+            'set /p choice=请输入数字后回车: \r\n'
+            f'if "%choice%"=="1" python "{manager}" start\r\n'
+            f'if "%choice%"=="2" python "{manager}" stop\r\n'
+            f'if "%choice%"=="3" python "{manager}" status\r\n'
+            'if "%choice%"=="0" exit\r\n'
+            'goto menu\r\n'
+        )
+        with open(os.path.join(base, CONSOLE_BAT), "w", encoding="gbk", errors="replace") as f:
+            f.write(content)
+    except Exception as e:
+        log(f"[提示] 控制台 bat 生成失败（不影响命令行使用）: {e}")
 
 
 def cmd_status(cfg, base=None):
@@ -266,6 +302,7 @@ def main():
         print(__doc__)
         sys.exit(2)
     cfg, base = load_config()
+    ensure_console_bat(base)   # 任意命令都刷新双击入口（含挪目录后的路径修正）
     return {"start": cmd_start, "stop": cmd_stop, "status": cmd_status,
             "kill_astrbot": cmd_kill_astrbot, "kill_napcat": cmd_kill_napcat}[cmd](cfg, base)
 
