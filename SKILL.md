@@ -81,7 +81,7 @@ GitHub 下载脚本已内置镜像轮换，**不需要代理**；DeepSeek API �
 |---|---|---|
 | `$QQ` | 用作 bot 的 QQ 号 | NapCat 配置文件名、cmd_config.json 管理员 |
 | `$KEY` | 聊天模型 API key（任何 OpenAI 兼容 API，推荐 DeepSeek，见上节） | cmd_config.json |
-| `$INSTALL` | 安装根目录 | 一切下载与安装的根（建议 `D:\qqbot`，用户自定） |
+| `$INSTALL` | 安装根目录 | 一切下载与安装的根。**默认 `D:\qqaibot`**（无 D 盘用 `C:\qqaibot`）；问用户时直接给这个默认值，用户没意见就用。路径不要含中文和空格 |
 
 变量替换一律用 Python 脚本做（保持 BOM、避免 shell 转义事故），参考 Phase 3。
 
