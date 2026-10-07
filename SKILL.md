@@ -202,7 +202,7 @@ io.open(p, "w", encoding="utf-8-sig").write(
     json.dumps(d, ensure_ascii=False, indent=2))
 ```
 
-验证：`verify.py json` 两个文件均可解析；`verify.py jsonkey cmd_config.json platform` 等抽查。
+验证：`verify.py json` 两个文件均可解析；`verify.py jsonkey cmd_config.json platform_settings` 等抽查。
 
 **立刻验证 API key 可用**（推荐，30 秒防翻车——别等 Phase 7 验收才发现 401）：
 
@@ -219,8 +219,9 @@ print("模板模型名核对:", "deepseek-flash" in models)
 - key 抄错/未生效/未充值 → 401，**立刻停下问用户**（行为约定第 2 条）；其他服务商把 URL 换成 `provider_sources[0].api_base + /models`。
 - **顺带核对模型名**（上游退役是实测踩过的坑）：打印出的列表里若没有模板用的模型名，按上方快照警告换成列表里的现名再铺配置。
 
-**创建部署状态文件**（Phase 5 的启动全靠它；这也是全程的断点记录）：把 `templates/deploy_state.json` 复制到 `$INSTALL\deploy_state.json`，填两个字段：
-- `astrbot_root` → `$INSTALL\astrbot`；`astrbot_exe` → astrbot.exe 实际路径（uv 默认 `%USERPROFILE%\.local\bin\astrbot.exe`）
+**创建部署状态文件**（Phase 5 的启动全靠它；这也是全程的断点记录）：把 `templates/deploy_state.json` 复制到 `$INSTALL\deploy_state.json`，填以下字段：
+- `install_root` → `$INSTALL`；`astrbot_root` → `$INSTALL\astrbot`；`astrbot_exe` → astrbot.exe 实际路径（uv 默认 `%USERPROFILE%\.local\bin\astrbot.exe`）
+- `admin_qq` → `$ADMIN`（用户开工时没提供就留空字符串，DIY 环节补）；`api_key_set` → `true`（只记布尔，不存明文）
 - `napcat_shell_dir` / `napcat_root` → **暂留空字符串**（Phase 6 装完 NapCat 回填），bot_manager 会自动只启动 AstrBot
 - 把 `progress.phase3_config` 改为 `done`。此后每完成一步都更新对应进度字段（行为约定第 5 条）
 
@@ -235,7 +236,7 @@ print("模板模型名核对:", "deepseek-flash" in models)
 ## Phase 4：安装读空气插件
 
 ```powershell
-python scripts/download.py https://github.com/Him666233/astrbot_plugin_group_chat_plus/archive/refs/heads/main.zip $INSTALL\downloads\plugin.zip
+python <skill目录>\scripts\download.py https://github.com/Him666233/astrbot_plugin_group_chat_plus/archive/refs/heads/main.zip $INSTALL\downloads\plugin.zip
 ```
 
 解压到 `$INSTALL\astrbot\data\plugins\astrbot_plugin_group_chat_plus\`：
@@ -264,9 +265,9 @@ python scripts/download.py https://github.com/Him666233/astrbot_plugin_group_cha
 
 ## Phase 5：启动 AstrBot（两次启动法）
 
-**第一次启动**（建立数据库 + 自动装插件依赖）：
+**第一次启动**（建立数据库 + 自动装插件依赖）——**bot_manager 从当前工作目录读 deploy_state.json，所以一律在 `$INSTALL` 下跑**（单条自包含命令，与 B1 同哲学，不依赖 shell 状态）：
 ```powershell
-python <skill目录>\scripts\bot_manager.py start
+Set-Location '<INSTALL>'; python '<skill目录>\scripts\bot_manager.py' start
 ```
 - **必须用 bot_manager 启动，禁止裸跑 `astrbot run`**——它是前台常驻进程，命令式 agent 会挂死（pitfalls B7）。bot_manager 开新窗口跑服务、轮询 `6185` 就绪后自己退出，agent 零风险；NapCat 未配置时自动只启动 AstrBot，正好符合当前阶段。**bot_manager 从本 Phase 起全程使用**（启动/扫码/停止/清理全是它的子命令，Phase 8 是命令总览与交付配置），不要脱离它手动管理任何进程。
 - 启动完成标志：bot_manager 输出 `WebUI 已监听`（或 `status` 显示 AstrBot RUNNING）。**首次启动要装插件依赖，1~3 分钟属正常**——bot_manager 最多等 120 秒，超时警告≠失败：窗口还在滚日志就继续等（`status` 复查），窗口消失/停在 pause 才是启动失败。
@@ -280,7 +281,7 @@ python <skill目录>\scripts\bot_manager.py start
   （bot_manager 的子窗口会继承它；不设则 AstrBot 自动生成随机密码，从 AstrBot 窗口日志 `Initial password:` 行抄给用户。模板刻意不预存密码，空 hash 别试 astrbot/astrbot）
 - 再启动：
 ```powershell
-python <skill目录>\scripts\bot_manager.py start
+Set-Location '<INSTALL>'; python '<skill目录>\scripts\bot_manager.py' start
 ```
 验证：
 - `verify.py port 6185` → WebUI 监听中
@@ -292,7 +293,7 @@ python <skill目录>\scripts\bot_manager.py start
 
 1. **下载解压**：
    ```powershell
-   python scripts/download.py https://github.com/NapNeko/NapCatQQ/releases/latest/download/NapCat.Shell.Windows.OneKey.zip $INSTALL\napcat\OneKey.zip
+   python <skill目录>\scripts\download.py https://github.com/NapNeko/NapCatQQ/releases/latest/download/NapCat.Shell.Windows.OneKey.zip $INSTALL\napcat\OneKey.zip
    ```
    解压到 `$INSTALL\napcat\`。
 
@@ -313,7 +314,7 @@ python <skill目录>\scripts\bot_manager.py start
 
 3. **启动并扫码**：
    ```powershell
-   python <skill目录>\scripts\bot_manager.py scan
+   Set-Location '<INSTALL>'; python '<skill目录>\scripts\bot_manager.py' scan
    ```
    scan 按 deploy_state 里的 `napcat_shell_dir`（步骤 2 **实测**回填；`NapCat.<构建号>.Shell` 的数字随版本变）定位 `napcat.bat` 开窗口——bootmain 陷阱（pitfalls C1）与路径错误由它规避，**不要自己手动 start napcat.bat**。
    - 开窗后**原话告知用户**：「二维码窗口出现了，请盯着看；**如果等了约一分钟还没出二维码，直接告诉我**，我会重启一次（第二次必出码）」——**不许让用户干等**。
@@ -406,6 +407,8 @@ python bot_manager.py kill_napcat    只杀 NapCat（含残留启动窗口）
 2. **验证**：先跑 `status` 看状态——AstrBot 应 STOPPED；**NapCat 若仍是 RUNNING（Phase 6 留下的登录态）不要硬 stop**（杀登录实例 = 重新扫码，pitfalls C5/C6）。直接跑 `start` 完整验证即可：它自带"先杀再启"（NapCat 免扫码重启，pitfalls C7），跑完 `status` 两项应 RUNNING，并确认 `$INSTALL\.bot_runtime\bot_manager.py` 已生成（运行时副本，双击 bat 的依赖——没有就重跑任意 bot_manager 命令）。**stop/kill 会真杀进程，只能在部署完成、确认无其他业务共用时执行**。
 3. **交付话术**：日常双击 `$INSTALL\机器人启动.bat`（双击即启动，菜单里可停止/看状态），并**原话告知关闭方法**："关机器人 = 控制台按 [2]，或者关掉 `qqaibot-AstrBot` 和 `qqaibot-NapCat` 两个窗口；控制台窗口本身随时可关、不影响机器人"；首次扫码/调试走 `bot_manager.py scan`（Phase 6 原方式就是它）。`start` 自动生成的内部启动 bat 在 `$INSTALL\.bot_runtime\` 下——**告诉用户不需要、也不要手动运行任何 bat**，双击控制台就是全部操作。
 4. **交付前必须停掉 agent 自己的保活后台任务**（沙箱 agent 部署期用来撑进程的，pitfalls B8）——它是"进程死了就重新拉起"的循环，交付后若还在运行，用户跑 `start` 杀掉的实例会被它再次拉起，两套实例叠加 → 同号互踢（C5）复发。**判别特征：某实例被杀后带着新 PID 复活**（实测：杀 PID 6464 → 复活成 41956）。停掉保活后用户再跑 start，才算真正接管。
+
+以上全部完成 → `progress.phase8_launcher` 改为 `done`，交付。
 
 > 设计边界：刻意不做"单窗口聚合两进程日志"——NapCat 首次登录要交互、两进程输出编码不同、Windows 下 Ctrl+C 信号转发不可靠。独立窗口 + 一键启停是可靠性最优解。
 

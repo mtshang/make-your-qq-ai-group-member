@@ -48,7 +48,7 @@ QQ 好友/群聊
 
 ```
 make-your-qq-ai-group-member/
-├── SKILL.md                  # Agent 执行的主流程（Phase 0-7 + 验收清单）
+├── SKILL.md                  # Agent 执行的主流程（Phase 0-8 全流程 + 验收清单 + 交付话术）
 ├── references/
 │   ├── pitfalls.md           # 28 条真实踩坑记录（出问题先查它）
 │   ├── config-params.md      # 全部配置参数说明（想调"话多话少"看这个）
@@ -60,7 +60,7 @@ make-your-qq-ai-group-member/
 │   ├── persona_dafeiyu.md    # "大肥鱼"人格卡文本
 │   └── deploy_state.json     # 部署状态单一来源（路径/QQ号/进度，agent 全程读写）
 └── scripts/
-    ├── bot_manager.py        # 日常一键启动/停止/状态（start/stop/status）
+    ├── bot_manager.py        # 全程服务管理器（start/stop/status/scan/kill_astrbot/kill_napcat，部署期+日常；自动生成双击启动器）
     ├── download.py           # GitHub 下载器（镜像轮换 + 直连兜底 + 假文件校验）
     ├── update_readmes.py     # 一键更新三个上游 README 到最新版
     └── verify.py             # 部署环境自检（端口/文件/JSON/HTTP）

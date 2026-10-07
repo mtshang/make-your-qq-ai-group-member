@@ -22,7 +22,7 @@ bot_manager.py — 一键启动/停止 AstrBot + NapCat（QQ AI 群聊机器人�
     {
       "astrbot_root":      "D:\\qqaibot\\astrbot",     <- ASTRBOT_ROOT 指向的数据目录
       "astrbot_exe":       "C:\\Users\\xx\\.local\\bin\\astrbot.exe",
-      "napcat_shell_dir":  "D:\\qqaibot\\napcat\\NapCat.52230.Shell",
+      "napcat_shell_dir":  "D:\\qqaibot\\napcat\\NapCat.52230.Shell",   <- 构建号随版本变，装完实测实际目录回填
       "napcat_root":       "D:\\qqaibot\\napcat"       <- 用于识别该目录下的 QQ.exe（避免误杀主号 QQ）
     }
 
@@ -388,7 +388,6 @@ def cmd_kill_napcat(cfg, base=None):
 def cmd_start(cfg, base):
     root = cfg["astrbot_root"]
     exe = cfg["astrbot_exe"]
-    shell_dir = cfg["napcat_shell_dir"]
 
     # 启动前先杀一次残留（用户约定 + pitfalls C5：永远单实例全新启动）
     cmd_kill_astrbot(cfg, base)
