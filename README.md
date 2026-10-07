@@ -29,12 +29,20 @@ QQ 好友/群聊
 
 ## 快速开始
 
-1. **下载本仓库**（`Code` → `Download ZIP`，或 `git clone`）并解压
-2. **喂给你的 Agent**：把整个文件夹发给支持 Skill 的 Agent，说一句「按照 SKILL.md 帮我部署 QQ 群聊机器人」
-3. Agent 会依次问你三件事：**bot 用的 QQ 小号**、**大模型 API key**（没有会给你创建引导，推荐 DeepSeek）、**安装到哪个目录**
-4. 剩下全自动：下载（国内镜像轮换）→ 配置 → 启动 → 出二维码扫码 → 六项全链路验收
+1. **获取本仓库**（`Code` → `Download ZIP`，或 `git clone`）并解压
+2. **交给你的 Agent**（按所用的 Agent 选择）：
 
-> 部署约 10~20 分钟（视网速）。详细流程、参数说明、18 条踩坑记录都在 `SKILL.md` 和 `references/` 里，人类也能直接读懂。
+   | Agent | 接入方式 |
+   |---|---|
+   | **WorkBuddy** | 直接把文件夹/zip 拖进对话 |
+   | **Claude Code**（推荐安装式） | 解压/克隆到 `~/.claude/skills/`（全局）或项目 `.claude/skills/` 下，新会话自动识别，可 `/make-your-qq-ai-group-member` 调用 |
+   | **Claude Code**（免安装式） | 发路径，说「读 SKILL.md 按流程执行」 |
+   | **Codex / 其他 CLI Agent** | 发路径或 zip，说「读 SKILL.md 按流程执行」 |
+
+3. Agent 会依次问你三件事：**bot 用的 QQ 小号**、**大模型 API key**（没有会给你创建引导，推荐 DeepSeek）、**安装到哪个目录**（默认 `D:\qqaibot`）
+4. 剩下全自动：下载（国内镜像轮换）→ 配置 → 启动 → 出二维码扫码 → 七项全链路验收
+
+> 部署约 10~20 分钟（视网速）。详细流程、参数说明、20 条踩坑记录都在 `SKILL.md` 和 `references/` 里，人类也能直接读懂。
 
 ## 目录结构
 
