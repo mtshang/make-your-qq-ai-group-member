@@ -125,8 +125,10 @@ def cmd_start(cfg, base):
         with open(bat, "w", encoding="gbk", errors="replace") as f:
             f.write(f'@echo off\r\ntitle AstrBot\r\nset "ASTRBOT_ROOT={root}"\r\n'
                     f'cd /d "{root}"\r\n"{exe}" run\r\npause\r\n')
-        # start 新控制台窗口跑 bat（引号全部由 bat 文件承担，避免 cmd 转义地狱）
-        subprocess.run(["cmd", "/c", "start", "AstrBot", bat], check=False)
+        # start 的第一个参数必须带引号才被当窗口标题；list 形式下裸写 "AstrBot"
+        # 会被 start 当成程序名去找 →「系统找不到文件 AstrBot」（实测踩坑）。
+        # 空标题 "" + 窗口名由 bat 里的 title 设置，引号全部由 bat 文件承担。
+        subprocess.run(["cmd", "/c", "start", "", bat], check=False)
         log("[启动] AstrBot 新窗口已打开，等待 WebUI 就绪 ...")
         for _ in range(60):
             time.sleep(2)
@@ -152,7 +154,7 @@ def cmd_start(cfg, base):
         with open(bat, "w", encoding="gbk", errors="replace") as f:
             f.write(f'@echo off\r\ntitle NapCat\r\ncd /d "{shell_dir}"\r\n'
                     f'call napcat.quick.bat\r\npause\r\n')
-        subprocess.run(["cmd", "/c", "start", "NapCat", bat], check=False)
+        subprocess.run(["cmd", "/c", "start", "", bat], check=False)  # 空标题，同 AstrBot 处的坑
         log("[启动] NapCat 新窗口已打开（quick 登录；首次部署请按 SKILL.md Phase 6 用 napcat.bat 扫码）")
     log("[完成] 启动流程已执行。停止请用: python bot_manager.py stop")
     return 0

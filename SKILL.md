@@ -54,6 +54,11 @@ QQ 好友/群聊
    - **每完成一个 Phase**，把 `progress` 里对应字段改成 `done`，并把新获得的路径/QQ 号写进对应字段；
    - **判读结果优先读这个文件**（文件读写对所有 agent 都可靠），读终端回显/扫日志只作兜底——GUI 型 agent 读屏易错，命令式 agent 也省得翻历史输出；
    - 中断恢复时**先读它**：progress 里第一个非 `done` 的 Phase 就是断点，从那里继续，已完成步骤不要重做。
+6. **窗口管理透明化**：每开一个新的终端窗口 / 安装器 / 扫码窗口，必须**同时**告诉用户三件事——这是什么窗口、要**保留**还是**可以关**、用户需要**看什么或做什么**。示例话术：
+   - 「NapCat 安装器窗口弹出来了，请点击安装；装完（napcat 目录出现 NapCat.数字.Shell 文件夹）回我"装好了"，窗口关掉没关系」
+   - 「扫码窗口出现了，请用**小号**扫码；**登录成功前千万别关**这个窗口」
+   - 「AstrBot 服务窗口已开并在滚日志，保留别动，你不用操作」
+   不许默默开窗口，也不许默默关窗口。全程窗口处置对照见「终端窗口一览」表。
 
 ## 前置条件（Phase 0 检查）
 
@@ -90,6 +95,7 @@ GitHub 下载脚本已内置镜像轮换，**不需要代理**；DeepSeek API �
    - 查 Windows 系统代理：`reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer`（配合 `ProxyEnable` 是否为 1）
    - 查环境变量：`echo $env:HTTP_PROXY` / `echo $env:HTTPS_PROXY`
 3. 探测到代理且 LLM API 直连不稳时，填入 `cmd_config.json` 的 `http_proxy` 字段（如 `http://127.0.0.1:7890`）。**默认留空**，别画蛇添足。
+4. ⚠ 本机设了系统代理时，用 curl/wget 探测**本地端口**（6185/6199）会被代理截胡返回 502/504——探测本地一律用 `verify.py port`（socket 直连不走代理），或给 curl 加 `--noproxy 127.0.0.1`。
 
 ## 需要向用户收集的变量
 
@@ -231,6 +237,21 @@ python scripts/download.py https://github.com/Him666233/astrbot_plugin_group_cha
 - 验证：`verify.py file <插件目录>\main.py` 存在。
 - **依赖不用手动装**——AstrBot 启动时自动安装 requirements.txt（pitfalls B4）。
 
+## 终端窗口一览（部署期，agent 必须照此向用户说明）
+
+部署全程会产生多个窗口，**每开一个都按行为约定第 6 条告知用户处置方式**，对照表：
+
+| 窗口 | 出现于 | 谁操作 | 处置 + 话术要点 |
+|---|---|---|---|
+| agent 的命令窗口 | 全程 | agent | 用户无需理会 |
+| AstrBot 服务窗口 | Phase 5 两次启动、验收期 | agent 拉起 | **保留**（服务本体）：「AstrBot 窗口已开并在滚日志，保留别动，你不用操作」 |
+| AstrBot 窗口（stop 后残留） | Phase 5 写库/改配置前 | agent | 服务被 stop 后窗口停在"请按任意键继续"——**属正常残留**，用户随手关掉即可，agent 不必处理 |
+| NapCat 安装器窗口 | Phase 6 步骤 2 | **用户** | **用户点安装**；装完回"装好了"；**窗口可关** |
+| NapCat 扫码窗口 | Phase 6 步骤 3 | **用户** | **用小号扫码**；**登录成功前千万别关**；成功后窗口保留（协议端服务本体） |
+| NapCat 常驻窗口 | Phase 6 步骤 5 重启后 | agent 拉起 | **保留**（协议端服务本体） |
+
+**交付后日常**（Phase 8 配好 bot_manager 后）：`start` 开出的 AstrBot + NapCat 两个窗口就是服务本体，**别手点右上角 X**（等于直接拔电源）；要停就走 `stop`，`stop` 后窗口停在按键提示，随手关掉即可。
+
 ## Phase 5：启动 AstrBot（两次启动法）
 
 **第一次启动**（建立数据库 + 自动装插件依赖）：
@@ -367,6 +388,7 @@ python bot_manager.py status   只读探测两服务状态
 | 人格挂不上 | pitfalls B5（persona_id 不一致） |
 | WebUI 登不上 | pitfalls B6（密码机制） |
 | agent 卡在启动命令 | pitfalls B7（常驻进程） |
+| 窗口启动成功秒死/日志戛然而止 | pitfalls B8（沙箱回收服务窗口） |
 | napcat.bat 报 Error Code 2 | pitfalls C1（bootmain 陷阱） |
 | NapCat 连不上 AstrBot | pitfalls C2（/ws 后缀） |
 | 私聊没反应 | pitfalls D1 |
