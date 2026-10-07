@@ -151,6 +151,12 @@ uv tool install astrbot --python 3.12
   ```
 - cmd：`set ASTRBOT_ROOT=$INSTALL\astrbot` 且 `setx ASTRBOT_ROOT "$INSTALL\astrbot"`
 
+**防呆验证（init 前必须）**——命令式 agent 的 shell 会话可能不共享变量，别假设它生效：
+```
+python -c "import os; print(os.environ.get('ASTRBOT_ROOT'))"
+```
+输出必须是 `$INSTALL\astrbot`。为空或不对 → 停下重设（`set`/`$env:` 管当前会话，`setx` 管新进程，两个都做过才能保证任何 shell 拉起的 astrbot 都看得到）。
+
 ```powershell
 astrbot init -y
 ```
@@ -183,6 +189,10 @@ io.open(p, "w", encoding="utf-8-sig").write(
 
 验证：`verify.py json` 两个文件均可解析；`verify.py jsonkey cmd_config.json platform` 等抽查。
 
+**生成启停器配置**（Phase 5 的启动全靠它，顺手一起做）：把 `templates/bot_manager.json` 复制到 `$INSTALL\bot_manager.json`，填两个字段：
+- `astrbot_root` → `$INSTALL\astrbot`；`astrbot_exe` → astrbot.exe 实际路径（uv 默认 `%USERPROFILE%\.local\bin\astrbot.exe`）
+- `napcat_shell_dir` / `napcat_root` → **暂留空字符串**（Phase 6 装完 NapCat 回填），bot_manager 会自动只启动 AstrBot
+
 模板已预置的关键配置（**不要乱动**）：
 - 平台：仅 `qq-napcat`（aiocqhttp，反向 WS 监听 `127.0.0.1:6199`，仅本机可连，无防火墙弹窗）
 - 私聊免唤醒：`friend_message_needs_wake_prefix=false`（否则私聊装死，pitfalls D1）
@@ -205,26 +215,25 @@ python scripts/download.py https://github.com/Him666233/astrbot_plugin_group_cha
 
 **第一次启动**（建立数据库 + 自动装插件依赖）：
 ```powershell
-astrbot run
+python <skill目录>\scripts\bot_manager.py start
 ```
-- **agent 执行提示**：`astrbot run` 是前台常驻进程。Agent 请用后台方式启动（如 `Start-Process` / `&` + 轮询日志或 `verify.py port 6185` 判断就绪），不要傻等；人类用户则开着窗口看日志即可。
-- 看到 WebUI 地址（`http://localhost:6185`）与"启动完成"日志即可。插件依赖安装可能需要 1~2 分钟。
-- 然后 **停止它**（写数据库必须先停，避免锁库）：人类 Ctrl+C；agent 杀掉该进程。
+- **必须用 bot_manager 启动，禁止裸跑 `astrbot run`**——它是前台常驻进程，命令式 agent 会挂死（pitfalls B7）。bot_manager 开新窗口跑服务、轮询 `6185` 就绪后自己退出，agent 零风险；NapCat 未配置时自动只启动 AstrBot，正好符合当前阶段。
+- 启动完成标志：bot_manager 输出 `WebUI 已监听`（或 `status` 显示 AstrBot RUNNING）。插件依赖安装可能需要 1~2 分钟。
+- 然后 **停止**（写数据库必须先停，避免锁库）：`python bot_manager.py stop`。人类用户手动跑的话在 AstrBot 窗口按 Ctrl+C。
 
 **写人格卡**（data_v4.db 此时已生成）：按 pitfalls B5 的 SQL 脚本，把 `templates/persona_dafeiyu.md` 写入 personas 表，`persona_id` 必须是 `大肥鱼DeepSeek`（与 cmd_config 绑定逐字符一致）。写库前先备份 `data_v4.db`。
 
-**第二次启动**（正式运行，窗口保持开着）：
+**第二次启动**（正式运行）：
+- 先想好 WebUI 密码（≥8 位含大小写+数字，如 `Astrbot123`），在当前 shell 设预设变量：
+  PowerShell：`$env:ASTRBOT_DASHBOARD_INITIAL_PASSWORD = "<密码>"`
+  （bot_manager 的子窗口会继承它；不设则 AstrBot 自动生成随机密码，从 AstrBot 窗口日志 `Initial password:` 行抄给用户。模板刻意不预存密码，空 hash 别试 astrbot/astrbot）
+- 再启动：
 ```powershell
-astrbot run
+python <skill目录>\scripts\bot_manager.py start
 ```
 验证：
 - `verify.py port 6185` → WebUI 监听中
-- **WebUI 首次登录**（用户名默认 `astrbot`，模板 dashboard.username 可改）：
-  - **推荐**：启动前设环境变量预设密码（当前会话生效即可，随 `astrbot run` 启动的 shell）：
-    PowerShell：`$env:ASTRBOT_DASHBOARD_INITIAL_PASSWORD = "<用户想用的密码>"`
-    ⚠ 密码必须 **≥8 位且同时含大写字母、小写字母、数字**（如 `Astrbot123`），不合规会**启动直接报错**——设之前先检查
-  - 或者不设变量：AstrBot 会自动生成 24 位随机密码，从启动日志 `Initial password:` 行抄给用户
-  - 模板刻意不预存任何密码（空 hash 登不上，也别试 astrbot/astrbot）；首登后 WebUI 会引导改密
+- **WebUI 首次登录**：用户名默认 `astrbot`（模板 dashboard.username 可改），密码用上面预设值或日志随机密码；首登后 WebUI 会引导改密
 - 浏览器开 `http://localhost:6185` 能看到控制台
 - 日志无 ERROR（人格缺失/插件加载失败会在日志里报）
 
@@ -313,7 +322,7 @@ python bot_manager.py stop     反序停止：NapCat(QQ.exe) 先，AstrBot 后
 python bot_manager.py status   只读探测两服务状态
 ```
 
-1. **生成配置**：把 `templates/bot_manager.json` 复制到 `$INSTALL\bot_manager.json`，替换占位符为实际值（`<INSTALL>` 出现 3 处全部替换；`<ASTRBOT_EXE>` → astrbot.exe 实际路径，uv 安装默认 `%USERPROFILE%\.local\bin\astrbot.exe`；`<构建号>` → Phase 6 装出的实际目录名，如 `NapCat.52230.Shell`）
+1. **补全配置**：`$INSTALL\bot_manager.json` 在 Phase 3 已生成，把两个空字段填上：`napcat_shell_dir` → Phase 6 装出的实际目录（如 `D:\qqaibot\napcat\NapCat.52230.Shell`）；`napcat_root` → `$INSTALL\napcat`。填完 `status` 应能探测 NapCat（STOPPED 属正常）。
 2. **验证**：先跑 `status`（应全部 STOPPED）→ `start`（两个新窗口弹出，status 变 RUNNING，AstrBot 窗口能看到启动日志）→ `stop`（恢复 STOPPED）。**stop 会真杀进程，只能在部署完成、确认无其他业务共用时执行**。
 3. **交付话术**：日常开机用 `start`，关机/维护用 `stop`；**首次扫码和调试仍按 Phase 5/6 原方式**（napcat.bat 扫码需要 NapCat 自己的窗口交互）。
 
@@ -337,6 +346,7 @@ python bot_manager.py status   只读探测两服务状态
 | JSON 报 BOM 错 | pitfalls B2 |
 | 人格挂不上 | pitfalls B5（persona_id 不一致） |
 | WebUI 登不上 | pitfalls B6（密码机制） |
+| agent 卡在启动命令 | pitfalls B7（常驻进程） |
 | napcat.bat 报 Error Code 2 | pitfalls C1（bootmain 陷阱） |
 | NapCat 连不上 AstrBot | pitfalls C2（/ws 后缀） |
 | 私聊没反应 | pitfalls D1 |

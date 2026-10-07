@@ -110,6 +110,11 @@
   3. 密码忘了/搞砸 → 设 `ASTRBOT_RESET_DASHBOARD_PASSWORD=1` 再启动一次，重新生成随机密码
 - 部署完成后提醒用户在 WebUI 里改成自己的密码（改完自动写回配置的 pbkdf2_password 字段）。
 
+### B7. 裸跑 `astrbot run` 把 agent 卡死（常驻进程）
+- **症状**：agent 在终端里执行 `astrbot run` 后命令永不返回，后续步骤无法进行（命令式 agent 直接挂起，超时被杀）。
+- **原因**：`astrbot run` 是前台常驻服务进程，不会退出；"发命令→等退出"模型的 agent（命令式 CLI、部分桌面 agent）遇到就挂。
+- **解决**：启动**一律走 `bot_manager.py start`**（内部已封装：新窗口 + 探活轮询 + 命令本身会退出）。agent 需要自己管理进程时用 `Start-Process`（不等待）+ `verify.py port 6185` 轮询。人类用户在自己的窗口里裸跑无所谓。
+
 ---
 
 ## C. NapCat 阶段

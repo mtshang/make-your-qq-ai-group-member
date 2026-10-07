@@ -98,14 +98,18 @@ def kill_tree(pid):
 def cmd_status(cfg, base=None):
     dash = listening_pids(DASH_PORT)
     ws = listening_pids(WS_PORT)
-    qq = napcat_qq_pids(cfg["napcat_root"])
+    nc_root = cfg.get("napcat_root", "").strip()
+    if nc_root:
+        qq = napcat_qq_pids(nc_root)
+        qq_line = f"QQ.exe PID {','.join(qq) or '-'}"
+        qq_state = "RUNNING" if qq else "STOPPED"
+    else:
+        qq, qq_line, qq_state = [], "未配置（Phase 6 后回填）", "N/A"
     log(f"AstrBot : {'RUNNING' if dash else 'STOPPED'}"
         f"  (WebUI:{DASH_PORT} {'监听中' if dash else '无'}, 反向WS:{WS_PORT} {'监听中' if ws else '无'}, PID {','.join(dash) or '-'})")
-    log(f"NapCat  : {'RUNNING' if qq else 'STOPPED'}"
-        f"  (QQ.exe PID {','.join(qq) or '-'})")
-    ok = bool(dash) and bool(qq)
-    log("整体状态: " + ("正常运行" if ok else ("部分未启动" if (dash or qq) else "全部未启动")))
-    return 0 if ok else 1
+    log(f"NapCat  : {qq_state}  ({qq_line})")
+    log("整体状态: " + ("正常运行" if dash and qq else ("部分未启动" if (dash or qq) else "全部未启动")))
+    return 0 if (dash and qq) else 1
 
 
 def cmd_start(cfg, base):
@@ -131,7 +135,11 @@ def cmd_start(cfg, base):
         else:
             log("[警告] 60 秒内未检测到 WebUI，请看 AstrBot 窗口日志排查")
 
-    if napcat_qq_pids(cfg["napcat_root"]):
+    nc_root = (cfg.get("napcat_root") or "").strip()
+    shell_dir = (cfg.get("napcat_shell_dir") or "").strip()
+    if not nc_root or not shell_dir:
+        log("[跳过] NapCat 未配置（napcat_root/napcat_shell_dir 为空，Phase 6 装完回填）——本次只启动 AstrBot")
+    elif napcat_qq_pids(nc_root):
         log("[跳过] NapCat 已在运行")
     else:
         if not os.path.isdir(shell_dir):
@@ -143,15 +151,16 @@ def cmd_start(cfg, base):
                     f'call napcat.quick.bat\r\npause\r\n')
         subprocess.run(["cmd", "/c", "start", "NapCat", bat], check=False)
         log("[启动] NapCat 新窗口已打开（quick 登录；首次部署请按 SKILL.md Phase 6 用 napcat.bat 扫码）")
-    log("[完成] 日常启动顺序已执行。停止请用: python bot_manager.py stop")
+    log("[完成] 启动流程已执行。停止请用: python bot_manager.py stop")
     return 0
 
 
-def cmd_stop(cfg):
-    qq = napcat_qq_pids(cfg["napcat_root"])
+def cmd_stop(cfg, base=None):
+    nc_root = (cfg.get("napcat_root") or "").strip()
+    qq = napcat_qq_pids(nc_root) if nc_root else []
     for pid in qq:
         kill_tree(pid)
-    log(f"[停止] NapCat: {'已停止 ' + str(len(qq)) + ' 个进程' if qq else '未在运行'}")
+    log(f"[停止] NapCat: {'已停止 ' + str(len(qq)) + ' 个进程' if qq else '未在运行/未配置'}")
 
     dash = listening_pids(DASH_PORT)
     for pid in dash:
