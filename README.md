@@ -57,8 +57,10 @@ make-your-qq-ai-group-member/
 │   ├── cmd_config.json       # AstrBot 主配置（平台/模型/人格绑定）
 │   ├── astrbot_plugin_group_chat_plus_config.json  # 读空气全套参数
 │   ├── napcat_onebot11.json  # NapCat 反向 WS 连接配置
-│   └── persona_dafeiyu.md    # "大肥鱼"人格卡文本
+│   ├── persona_dafeiyu.md    # "大肥鱼"人格卡文本
+│   └── bot_manager.json      # 一键启停工具的路径配置模板
 └── scripts/
+    ├── bot_manager.py        # 日常一键启动/停止/状态（start/stop/status）
     ├── download.py           # GitHub 下载器（镜像轮换 + 直连兜底 + 假文件校验）
     ├── update_readmes.py     # 一键更新三个上游 README 到最新版
     └── verify.py             # 部署环境自检（端口/文件/JSON/HTTP）

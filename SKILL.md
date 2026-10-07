@@ -246,9 +246,25 @@ astrbot run
 
 全部通过 → 部署完成。任何一步失败 → 按 `references/pitfalls.md` 对应章节排查。
 
+## Phase 8（可选）：一键启动器 bot_manager
+
+验收通过后给用户配置日常启停工具（免记启动顺序、一键全停）。脚本 `scripts/bot_manager.py`，三个命令：
+
+```
+python bot_manager.py start    按序启动：AstrBot 先（等 WebUI 就绪）→ NapCat 后（各开独立窗口，已启动的自动跳过）
+python bot_manager.py stop     反序停止：NapCat(QQ.exe) 先，AstrBot 后
+python bot_manager.py status   只读探测两服务状态
+```
+
+1. **生成配置**：把 `templates/bot_manager.json` 复制到 `$INSTALL\bot_manager.json`，替换占位符为实际值（`<INSTALL>` 出现 3 处全部替换；`<ASTRBOT_EXE>` → astrbot.exe 实际路径，uv 安装默认 `%USERPROFILE%\.local\bin\astrbot.exe`；`<构建号>` → Phase 6 装出的实际目录名，如 `NapCat.52230.Shell`）
+2. **验证**：先跑 `status`（应全部 STOPPED）→ `start`（两个新窗口弹出，status 变 RUNNING，AstrBot 窗口能看到启动日志）→ `stop`（恢复 STOPPED）。**stop 会真杀进程，只能在部署完成、确认无其他业务共用时执行**。
+3. **交付话术**：日常开机用 `start`，关机/维护用 `stop`；**首次扫码和调试仍按 Phase 5/6 原方式**（napcat.bat 扫码需要 NapCat 自己的窗口交互）。
+
+> 设计边界：刻意不做"单窗口聚合两进程日志"——NapCat 首次登录要交互、两进程输出编码不同、Windows 下 Ctrl+C 信号转发不可靠。独立窗口 + 一键启停是可靠性最优解。
+
 ## 日常使用（交付时告知用户）
 
-- **日常启动顺序**：先 `astrbot run`（窗口保持开）→ 再 NapCat 的 `napcat.quick.bat`（免扫码）。关机重开后按此顺序。
+- **日常启动/停止**：一键 `python bot_manager.py start` / `stop`（配置好 Phase 8 后）；手动方式：先 `astrbot run`（窗口保持开）→ 再 NapCat 的 `napcat.quick.bat`（免扫码）。关机重开后按此顺序。
 - **改配置**：改文件 → **重启 AstrBot 后**才能动 WebUI（pitfalls B3 铁律，顺序反了修改全丢）。
 - **WebUI 密码**：首登用预设密码（环境变量）或日志里的随机密码，登录后立即在 WebUI 改掉（pitfalls B6）。
 - **省 token**：决策 AI 推理（`enable_decision_ai_reasoning`）**默认已关闭**；若决策质量不满意可开启观察日志，确认后记得关回（它对每条过筛消息都输出推理块，token 大头）。
