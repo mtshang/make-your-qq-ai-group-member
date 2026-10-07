@@ -130,7 +130,7 @@
 
 ### C2. 反向 WebSocket 必须带 `/ws` 后缀
 - **症状**：NapCat 登录成功但 AstrBot 收不到任何连接。
-- **原因**：AstrBot 的 aiocqhttp 平台监听 `0.0.0.0:6199`，WebSocket 端点路径是 `/ws`。NapCat 配置里 URL 少了 `/ws` 就连不上。
+- **原因**：AstrBot 的 aiocqhttp 平台监听 `127.0.0.1:6199`，WebSocket 端点路径是 `/ws`。NapCat 配置里 URL 少了 `/ws` 就连不上。若你把 NapCat 部署在**另一台机器**，需把 cmd_config 的 `platform[0].ws_reverse_host` 改回 `0.0.0.0` 并放行防火墙。
 - **正确值**（模板已写好）：`ws://127.0.0.1:6199/ws`。
 - **验收**：AstrBot 日志出现 WebSocket 连接成功相关行；WebUI「平台适配器」里消息平台在线。
 

@@ -127,9 +127,10 @@ uv tool install astrbot --python 3.12
 - cmd：`set ASTRBOT_ROOT=$INSTALL\astrbot` 且 `setx ASTRBOT_ROOT "$INSTALL\astrbot"`
 
 ```powershell
-astrbot init
+astrbot init -y
 ```
 
+- **`-y` 必须带**：跳过交互式确认（不带的话命令会卡在提问，agent 场景直接挂起）。
 - `astrbot` 命令找不到 → 新开 shell，或用 `%USERPROFILE%\.local\bin\astrbot.exe`。
 - 验证：`verify.py file "$INSTALL\astrbot\data"` 目录已生成。
 
@@ -158,7 +159,7 @@ io.open(p, "w", encoding="utf-8-sig").write(
 验证：`verify.py json` 两个文件均可解析；`verify.py jsonkey cmd_config.json platform` 等抽查。
 
 模板已预置的关键配置（**不要乱动**）：
-- 平台：仅 `qq-napcat`（aiocqhttp，反向 WS 监听 `0.0.0.0:6199`）
+- 平台：仅 `qq-napcat`（aiocqhttp，反向 WS 监听 `127.0.0.1:6199`，仅本机可连，无防火墙弹窗）
 - 私聊免唤醒：`friend_message_needs_wake_prefix=false`（否则私聊装死，pitfalls D1）
 - 分段回复：开启（interval 1.5~3.5s，段间空行是正常行为，pitfalls D3）
 - 默认人格：`大肥鱼DeepSeek`（人格卡在 Phase 5 写库）
@@ -181,8 +182,9 @@ python scripts/download.py https://github.com/Him666233/astrbot_plugin_group_cha
 ```powershell
 astrbot run
 ```
+- **agent 执行提示**：`astrbot run` 是前台常驻进程。Agent 请用后台方式启动（如 `Start-Process` / `&` + 轮询日志或 `verify.py port 6185` 判断就绪），不要傻等；人类用户则开着窗口看日志即可。
 - 看到 WebUI 地址（`http://localhost:6185`）与"启动完成"日志即可。插件依赖安装可能需要 1~2 分钟。
-- 然后 **Ctrl+C 停止**（要写数据库，必须先停，避免锁库）。
+- 然后 **停止它**（写数据库必须先停，避免锁库）：人类 Ctrl+C；agent 杀掉该进程。
 
 **写人格卡**（data_v4.db 此时已生成）：按 pitfalls B5 的 SQL 脚本，把 `templates/persona_dafeiyu.md` 写入 personas 表，`persona_id` 必须是 `大肥鱼DeepSeek`（与 cmd_config 绑定逐字符一致）。写库前先备份 `data_v4.db`。
 

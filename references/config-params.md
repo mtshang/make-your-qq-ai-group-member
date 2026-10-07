@@ -26,7 +26,9 @@
 | `platform_settings.segmented_reply.interval` | `"1.5,3.5"` | ⚙️ 分段间隔随机区间（秒），调小回复更急促、调大更从容 |
 | `platform_settings.segmented_reply.words_count_threshold` | `150` | ⚙️ 超过该字数不拆分（长文整段发） |
 | `dashboard.username` / 密码 | `astrbot` / 空 | 🔧 WebUI 登录。模板不预存密码：启动时自动生成随机密码（打印在日志），或提前设环境变量 `ASTRBOT_DASHBOARD_INITIAL_PASSWORD` 预设（需 ≥8 位含大小写+数字，pitfalls B6） |
+| `dashboard.host` | `127.0.0.1` | ⚙️ WebUI 监听地址。默认仅本机可访问（安全）；想用手机/局域网访问 WebUI 改 `0.0.0.0`，**务必同时设强密码** |
 | `dashboard.port` | `6185` | ⚙️ WebUI 端口，被占用时改 |
+| `platform[0].ws_reverse_host` | `127.0.0.1` | ⚙️ 反向 WS 监听地址。默认仅本机（NapCat 同机部署够用，且不触发防火墙弹窗）；NapCat 装到别的机器才改 `0.0.0.0` |
 | `platform[0].ws_reverse_port` | `6199` | ⚙️ 反向 WS 监听端口。**改了必须同步改 NapCat 侧 URL**（`ws://127.0.0.1:端口/ws`） |
 | `log_level` | `INFO` | ⚙️ 排查问题时可改 `DEBUG`，平时别开（日志量巨大） |
 | `timezone` | `Asia/Shanghai` | ⚙️ 影响时段概率计算，一般不动 |

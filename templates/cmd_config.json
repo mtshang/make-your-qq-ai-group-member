@@ -1,4 +1,4 @@
-{
+﻿{
   "config_version": 3,
   "platform_settings": {
     "unique_session": false,
@@ -257,7 +257,7 @@
     "password_storage_upgraded": false,
     "password_change_required": false,
     "jwt_secret": "",
-    "host": "0.0.0.0",
+    "host": "127.0.0.1",
     "port": 6185,
     "disable_access_log": true,
     "trust_proxy_headers": false,
@@ -284,7 +284,7 @@
       "type": "aiocqhttp",
       "enable": true,
       "name": "default",
-      "ws_reverse_host": "0.0.0.0",
+      "ws_reverse_host": "127.0.0.1",
       "ws_reverse_port": 6199,
       "ws_reverse_token": ""
     }
