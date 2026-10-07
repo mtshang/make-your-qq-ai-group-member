@@ -2,9 +2,10 @@
 """
 bot_manager.py — 一键启动/停止 AstrBot + NapCat（QQ AI 群聊机器人）
 
-用法（在部署完成的机器上）:
+用法（部署全程 + 日常都在用，命令总览）:
     python bot_manager.py start          先清残留再全新启动：AstrBot 先，NapCat 后（各开独立窗口）
-    python bot_manager.py stop           全部停止：NapCat(QQ) 先，AstrBot 后
+    python bot_manager.py scan           扫码模式：用 napcat.bat 开窗口出二维码（部署期 Phase 6 用）
+    python bot_manager.py stop           全停：NapCat(QQ) 先，AstrBot 后
     python bot_manager.py status         查看两个服务当前状态
     python bot_manager.py kill_astrbot   只杀 AstrBot（含残留启动窗口）
     python bot_manager.py kill_napcat    只杀 NapCat（含残留启动窗口）
@@ -304,9 +305,11 @@ def cmd_kill_napcat(cfg, base=None):
         if by_title:
             msg += f"（{len(by_title)} 个按窗口标题定位）"
         log(f"[清理] NapCat(QQ.exe): {msg}")
-        # napcat 目录下一切 .bat 的 cmd 窗口（napcat.bat / napcat.quick.bat / 我们的启动 bat）
+        # napcat 目录下一切 .bat 的 cmd 窗口 + 我们在 .bot_runtime 下生成的启动/扫码窗口
+        # （后者 cmdline 不含 napcat_root，必须按 bat 名补一条，否则 scan/start 窗口清不掉）
         root = nc_root.rstrip("\\").replace("'", "''")
-        where = "$_.CommandLine -like '*%s*' -and $_.CommandLine -like '*.bat*'" % root
+        where = ("($_.CommandLine -like '*%s*' -and $_.CommandLine -like '*.bat*') "
+                 "-or $_.CommandLine -like '*start_napcat*'" % root)
     else:
         log("[清理] NapCat 未配置（napcat_root 为空）——只清理本脚本自己的启动窗口")
         where = "$_.CommandLine -like '*%s*'" % BAT_NAPCAT
@@ -384,6 +387,33 @@ def cmd_start(cfg, base):
     return 0
 
 
+def cmd_scan(cfg, base):
+    """扫码模式：用 napcat.bat（非 quick）开窗口出二维码。
+
+    部署期 agent 用这个启动扫码，**禁止自己手动 cd + start napcat.bat**——
+    手动跑的路径/cwd 事故（「Windows 找不到文件 napcat.bat」、bootmain 陷阱）全由本命令规避。
+    """
+    shell_dir = (cfg.get("napcat_shell_dir") or "").strip()
+    if not shell_dir or not os.path.isdir(shell_dir):
+        log(f"[错误] napcat_shell_dir 未回填或不存在: {shell_dir}——先完成 Phase 6 安装并把目录写进 deploy_state.json")
+        return 1
+    real = os.path.join(shell_dir, "napcat.bat")
+    if not os.path.isfile(real):
+        log(f"[错误] {real} 不存在——检查 napcat_shell_dir 是否指向 NapCat.*.Shell 目录（别指向 bootmain）")
+        return 1
+    cmd_kill_napcat(cfg, base)
+    time.sleep(2)
+    clean_legacy_bat(base, BAT_NAPCAT)
+    bat = os.path.join(runtime_dir(base), BAT_NAPCAT)
+    with open(bat, "w", encoding="gbk", errors="replace") as f:
+        f.write(f'@echo off\r\ntitle qqaibot-NapCat\r\ncd /d "{shell_dir}"\r\n'
+                f'call napcat.bat\r\npause\r\n')
+    subprocess.run(["cmd", "/c", "start", "", bat], check=False)  # 空标题，同 AstrBot 处的坑
+    log("[扫码] NapCat 窗口已打开等待出二维码；出码后让用户用小号扫码（不出码查 pitfalls C4，找 qrcode.png）")
+    log("[扫码] 登录成功后此窗口即服务本体，保留；日常重启换用 start（走 quick.bat 免扫码）")
+    return 0
+
+
 def cmd_stop(cfg, base=None):
     cmd_kill_napcat(cfg, base)
     time.sleep(1)
@@ -394,12 +424,13 @@ def cmd_stop(cfg, base=None):
 
 def main():
     cmd = sys.argv[1].lower() if len(sys.argv) > 1 else ""
-    if cmd not in ("start", "stop", "status", "kill_astrbot", "kill_napcat"):
+    if cmd not in ("start", "stop", "status", "scan", "kill_astrbot", "kill_napcat"):
         print(__doc__)
         sys.exit(2)
     cfg, base = load_config()
     ensure_console_bat(base)   # 任意命令都刷新双击入口（含挪目录后的路径修正）
     return {"start": cmd_start, "stop": cmd_stop, "status": cmd_status,
+            "scan": cmd_scan,
             "kill_astrbot": cmd_kill_astrbot, "kill_napcat": cmd_kill_napcat}[cmd](cfg, base)
 
 

@@ -256,7 +256,7 @@ python scripts/download.py https://github.com/Him666233/astrbot_plugin_group_cha
 | NapCat 常驻窗口（标题 `qqaibot-NapCat`） | Phase 6 步骤 5 重启后 | agent 拉起 | **保留**（协议端服务本体） |
 | bot 的 QQ 客户端窗口（标题 `qqaibot-QQ-<QQ号>`） | NapCat 启动登录后 | 自动改名 | **保留**。启动时后台自动改名（防与主号 QQ 混淆，尽力而为——QQ 可能自己改回标题，改名失败不影响功能）；`kill_napcat` 会连这个窗口的进程一起定位杀掉 |
 
-**交付后日常（关机器人关哪些窗口，必须原话告知用户）**（Phase 8 配好 bot_manager 后）：桌面上同时存在 3 个窗口，职责各不同——
+**交付后日常（关机器人关哪些窗口，必须原话告知用户）**（bot_manager 从 Phase 5 起全程在用，用户日常面对的就是最多 3 个窗口）：职责各不同——
 - `qqaibot-AstrBot`、`qqaibot-NapCat`：两个**服务本体**窗口。**关闭机器人 = 控制台按 `[2]`（推荐，反序杀干净）**；或者直接手关这两个窗口（等效强停对应组件，可行但非首选）。**不要只关其一**（会留半停状态，Bot 不响应却占着端口）。
 - `qqaibot 机器人启动`（控制台窗口）：只是操作面板，**随时可关，不影响机器人运行**。
 `stop`/`kill`/关窗口后，服务窗口若停在按键提示，随手关掉即可（再次 `start` 时也会自动清掉）。
@@ -267,7 +267,7 @@ python scripts/download.py https://github.com/Him666233/astrbot_plugin_group_cha
 ```powershell
 python <skill目录>\scripts\bot_manager.py start
 ```
-- **必须用 bot_manager 启动，禁止裸跑 `astrbot run`**——它是前台常驻进程，命令式 agent 会挂死（pitfalls B7）。bot_manager 开新窗口跑服务、轮询 `6185` 就绪后自己退出，agent 零风险；NapCat 未配置时自动只启动 AstrBot，正好符合当前阶段。
+- **必须用 bot_manager 启动，禁止裸跑 `astrbot run`**——它是前台常驻进程，命令式 agent 会挂死（pitfalls B7）。bot_manager 开新窗口跑服务、轮询 `6185` 就绪后自己退出，agent 零风险；NapCat 未配置时自动只启动 AstrBot，正好符合当前阶段。**bot_manager 从本 Phase 起全程使用**（启动/扫码/停止/清理全是它的子命令，Phase 8 是命令总览与交付配置），不要脱离它手动管理任何进程。
 - 启动完成标志：bot_manager 输出 `WebUI 已监听`（或 `status` 显示 AstrBot RUNNING）。**首次启动要装插件依赖，1~3 分钟属正常**——bot_manager 最多等 120 秒，超时警告≠失败：窗口还在滚日志就继续等（`status` 复查），窗口消失/停在 pause 才是启动失败。
 - 然后 **停止**（写数据库必须先停，避免锁库）：`python bot_manager.py stop`。人类用户手动跑的话在 AstrBot 窗口按 Ctrl+C。
 
@@ -296,16 +296,21 @@ python <skill目录>\scripts\bot_manager.py start
    解压到 `$INSTALL\napcat\`。
 
 2. **运行安装器**：启动 `$INSTALL\napcat\NapCatInstaller.exe`（GUI，需要用户配合点击），等待它下载 QQ 内核。失败 → pitfalls A2（重试/换网络）。装完目录里出现 `NapCat.*.Shell\`。
+   **装完立刻回填 deploy_state.json**：`napcat_shell_dir` → 实际 `NapCat.*.Shell` 目录、`napcat_root` → `$INSTALL\napcat`——**此后的 NapCat 启动/扫码/停止/清理全走 bot_manager**（scan/start/stop/kill_napcat），agent 不要再手动 cd + 跑 napcat.bat（手动路径事故 pitfalls C8）。
 
-3. **启动并扫码**：进 `NapCat.*.Shell\` 目录跑 `napcat.bat`。
-   - ⚠ **绝对不要用 `bootmain\` 里的同名 bat**（pitfalls C1，Error Code 2 元凶）。
-   - 出二维码后让用户用**手机 QQ（bot 小号）**扫码登录——**扫码前再问一遍确认是小号**，扫错成大号就立刻下线重扫。
+3. **启动并扫码**：
+   ```powershell
+   python bot_manager.py scan
+   ```
+   scan 自动定位 `napcat_shell_dir` 里的 `napcat.bat` 开窗口——bootmain 陷阱（pitfalls C1）与路径错误由它规避，**不要自己手动 start napcat.bat**。
+   - 出二维码后让用户用**手机 QQ（bot 小号）**扫码登录——**扫码前再问一遍确认是小号**，扫错成大号就立刻下线重扫。终端不出码 → pitfalls C4（qrcode.png 落盘兜底）。
+   - 屏幕上有停在 `Press any key` 的旧窗口不用管——那是已死进程的残留，scan/start/kill_napcat 都会自动清掉。
 
 4. **读取实际 QQ 号**（不问用户，扫码自动获得）：登录成功后 NapCat 会在
    ```
    NapCat.*.Shell\versions\*\resources\app\napcat\config\
    ```
-   下生成 `onebot11_<QQ号>.json` / `napcat_<QQ号>.json`——从文件名直接读出 QQ 号（记为 `$QQ`）。**立刻写进 deploy_state.json**：`qq` 填号、`napcat_shell_dir`/`napcat_root` 填实际路径。
+   下生成 `onebot11_<QQ号>.json` / `napcat_<QQ号>.json`——从文件名直接读出 QQ 号（记为 `$QQ`）。**立刻写进 deploy_state.json** 的 `qq` 字段（`napcat_shell_dir`/`napcat_root` 已在步骤 2 回填，确认无误即可）。
    **读号后立刻改 `napcat.quick.bat` 的占位账号**：OneKey 硬编码 `-q 10086`，把占位号替换为 `$QQ`（Python/编辑器均可）——不改则交付后用户每次重启都要重新扫码（pitfalls C7）。
 
 5. **注入反连配置**：NapCat 生成的配置里没有反向 WS 设置。用脚本把模板的 `network.websocketClients` 合并进生成的 `onebot11_$QQ.json`（其余字段保持原样）：
@@ -364,12 +369,13 @@ python <skill目录>\scripts\bot_manager.py start
 - 用户说"不用/都行" → 直接进入 Phase 8 / 交付。
 - 这张表只问**一次**，别反复推销。
 
-## Phase 8（可选）：一键启动器 bot_manager
+## Phase 8：一键启动器 bot_manager（命令总览与交付）
 
-验收通过后给用户配置日常启停工具（免记启动顺序、一键全停）。脚本 `scripts/bot_manager.py`，五个命令：
+bot_manager 从 Phase 5 起就是**全程骨架**（启动/扫码/停止/清理全部走它，agent 不手动管理任何进程）——本 Phase 把它配置成用户的日常工具并交付。六个命令：
 
 ```
 python bot_manager.py start          先清残留再全新启动：AstrBot 先（等 WebUI 就绪）→ NapCat 后（各开独立窗口）
+python bot_manager.py scan           扫码模式：用 napcat.bat 出二维码（部署期 Phase 6 用）
 python bot_manager.py stop           全停：NapCat(QQ.exe) 先，AstrBot 后
 python bot_manager.py status         只读探测两服务状态
 python bot_manager.py kill_astrbot   只杀 AstrBot（含残留启动窗口）
@@ -414,6 +420,7 @@ python bot_manager.py kill_napcat    只杀 NapCat（含残留启动窗口）
 | bot 掉线且开过多个实例 | pitfalls C5（同号互踢连锁） |
 | 杀进程误伤别的窗口 | pitfalls C6（禁按窗口标题杀） |
 | 每次重启都要重新扫码 | pitfalls C7（quick.bat 占位号没改） |
+| 手动跑 napcat.bat 报"找不到文件"/旧扫码窗口越积越多 | pitfalls C8（扫码一律走 bot_manager scan，旧窗口自动清） |
 | 私聊没反应 | pitfalls D1 |
 | /help 不触发 | pitfalls D2 |
 | 回复有空行 | pitfalls D3 |

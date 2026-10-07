@@ -178,6 +178,11 @@
 - **解决**：Phase 6 读到实际 QQ 后**立刻**把 `napcat.quick.bat` 的 `-q 10086` 改成 `-q <实际QQ>`——此后重启 NapCat 走 quick.bat **免扫码**（实测有效）。
 - **症状**：交付后用户每次重启都被要求扫码 = 八成是 quick.bat 没改号。
 
+### C8. agent 手动跑 napcat.bat 报"Windows 找不到文件"（扫码一律走 bot_manager scan）
+- **症状**：agent 手动开窗跑 napcat.bat 时报"Windows 找不到文件"；同时部署过程中积累多个停在"请按任意键继续"的旧扫码窗口（进程已死、cmd 壳残留）没人清。
+- **原因**：一是路径/cwd 事故——napcat.bat 路径带空格时没加引号、cwd 没切过去，或 `start` 后第一个裸参数被当成了程序名（找不到的自然是 bat）；二是每轮扫码/重启都开新窗口，旧窗口里的进程死了但壳还停在 pause，越积越多。
+- **解决**：**扫码一律 `python bot_manager.py scan`**——它自己校验 deploy_state 里 `napcat_shell_dir`/napcat.bat 是否存在（缺失时明确报错指向回填）、先杀残留 NapCat、生成 bat 开新码窗；旧扫码壳窗口由 scan/start/kill_napcat 自动清理。**Phase 6 装完 NapCat 立刻回填 deploy_state 的 napcat 字段，此后 NapCat 的启动/扫码/停止/清理全走 bot_manager，agent 不再手动跑 napcat.bat**。
+
 ---
 
 ## D. 运行期
