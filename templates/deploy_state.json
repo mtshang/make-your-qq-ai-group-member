@@ -6,6 +6,7 @@
   "napcat_root": "",
   "napcat_shell_dir": "",
   "qq": "",
+  "admin_qq": "",
   "api_key_set": false,
   "progress": {
     "phase0_env_check": "pending",

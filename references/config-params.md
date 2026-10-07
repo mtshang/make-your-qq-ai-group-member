@@ -12,7 +12,7 @@
 | 参数 | 当前值 | 说明 |
 |---|---|---|
 | `provider_sources[0].key` | `<YOUR_API_KEY>` | 🔧 DeepSeek API key，数组形式 |
-| `admins_id` | `<YOUR_QQ_NUMBER>` | 🔧 管理员 QQ 号（bot 小号自身）。**Phase 6 扫码登录后从 NapCat 生成的文件名读号回填**（SKILL.md Phase 6 步骤 6），改完重启 AstrBot |
+| `admins_id` | `<YOUR_QQ_NUMBER>` | 🔧 **管理员 QQ = 用户的大号**（管理指令/插件重置/权限豁免都认它；bot 小号不需要也不应该当管理员）。开工时收集（SKILL 变量 `$ADMIN`），Phase 3 铺模板时填入；用户暂缓提供则 Phase 7 后 DIY 环节补填并重启 AstrBot |
 
 ### 1.2 常改项
 

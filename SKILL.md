@@ -105,8 +105,9 @@ GitHub 下载脚本已内置镜像轮换，**不需要代理**；DeepSeek API �
 |---|---|---|
 | `$KEY` | 聊天模型 API key（任何 OpenAI 兼容 API，推荐 DeepSeek，见上节） | cmd_config.json |
 | `$INSTALL` | 安装根目录 | 一切下载与安装的根。**默认 `D:\qqaibot`**（无 D 盘用 `C:\qqaibot`）；问用户时直接给这个默认值，用户没意见就用。路径不要含中文和空格 |
+| `$ADMIN` | **管理员 QQ 号 = 用户自己的大号**（向用户解释：bot 得有个"主人"，管理指令、插件重置、权限豁免都认这个号；只收集号码本身，**不会用它登录任何东西**，大号不碰协议端零风险）。用户不想现在给 → 允许"稍后提供"，Phase 7 跑通后的 DIY 环节再问一次，届时填入并重启 AstrBot | cmd_config.json 的 `admins_id` |
 
-**bot 的 QQ 号不收集**——NapCat 扫码登录后从它生成的配置文件名里读实际登录号（Phase 6 步骤 4），杜绝填错号/文件名对不上的问题。管理员（admins_id）届时回填。
+**bot 的 QQ 号不收集**——NapCat 扫码登录后从它生成的配置文件名里读实际登录号（Phase 6 步骤 4），杜绝填错号/文件名对不上的问题。管理员不是 bot 自己，而是用户的大号（见上表 `$ADMIN`）。
 
 **但 QQ 小号本身要在开工前确认**——明确问用户："用作 bot 的 QQ 小号准备好了吗？"并讲清危害：
 > NapCat 是第三方协议端，模拟 QQ 客户端行为，**账号存在被风控/冻结/封禁的风险**。大号里绑着支付、社交关系、游戏资产，被封的损失不可逆；小号被封只是换个号重来。所以**必须用小号**，且最好是注册过一段时间、有过正常使用的号（全新号风控概率更高）。
@@ -124,6 +125,7 @@ GitHub 下载脚本已内置镜像轮换，**不需要代理**；DeepSeek API �
 |---|---|
 | bot QQ 小号 | 已准备 ✓（已知悉风控风险，不用大号） |
 | API key | ****<尾 4 位>（已隐藏，前缀因服务商而异） |
+| 管理员 QQ | <填入>（你的大号，bot 的"主人"；暂不想给可写"稍后提供"） |
 | 安装目录 | <填入>（默认 D:\qqaibot） |
 | 代理 | 无 / 127.0.0.1:<端口>（备用） |
 ```
@@ -183,7 +185,7 @@ uv tool install astrbot --python 3.12
 
 | 模板 | 铺到 | 待替换 |
 |---|---|---|
-| `cmd_config.json` | `$INSTALL\astrbot\data\cmd_config.json`（覆盖 init 生成的） | `<YOUR_API_KEY>` → `$KEY`；`<YOUR_QQ_NUMBER>` **此时不填**，Phase 6 扫码后回填 |
+| `cmd_config.json` | `$INSTALL\astrbot\data\cmd_config.json`（覆盖 init 生成的） | `<YOUR_API_KEY>` → `$KEY`；`<YOUR_QQ_NUMBER>` → `$ADMIN`（管理员=用户大号；开工时用户没给就保留占位符，Phase 7 后 DIY 环节补填） |
 | `astrbot_plugin_group_chat_plus_config.json` | `$INSTALL\astrbot\data\config\astrbot_plugin_group_chat_plus_config.json`（目录不存在则创建） | 无占位符 |
 | `napcat_onebot11.json` | Phase 6 登录后作注入源（合并进 NapCat 生成的配置） | 无需改 |
 
@@ -194,7 +196,7 @@ import json, io
 p = r"<data>\cmd_config.json"
 d = json.load(io.open(p, encoding="utf-8-sig"))
 d["provider_sources"][0]["key"] = ["<KEY>"]
-d["admins_id"] = ["<QQ>"]
+d["admins_id"] = ["<ADMIN_QQ>"]   # 管理员=用户大号；开工时未提供则此行跳过，占位符留给 Phase 7 后补填
 io.open(p, "w", encoding="utf-8-sig").write(
     json.dumps(d, ensure_ascii=False, indent=2))
 ```
@@ -311,7 +313,7 @@ python <skill目录>\scripts\bot_manager.py start
    然后重启 NapCat：关掉旧窗口，重新跑 `napcat.quick.bat`（已登录免扫码）。
    备选：也可在 NapCat WebUI「网络配置」页手动加反向 WS（`ws://127.0.0.1:6199/ws`），效果相同。
 
-6. **回填管理员**：把 `$INSTALL\astrbot\data\cmd_config.json` 的 `<YOUR_QQ_NUMBER>` 替换为 `$QQ`（Python 脚本，utf-8-sig），**重启 AstrBot**（`bot_manager.py stop` → `start`）。完成后把 `progress.phase6_link_up` 改 `done`。
+6. **管理员确认**：`admins_id` 在 Phase 3 已填入**用户大号**（不是 bot 号）——确认占位符已替换；若用户开工时选了"稍后提供"，此处**必须**问一次大号 QQ 并补填，**重启 AstrBot**（`bot_manager.py stop` → `start`）。没有管理员时部分管理指令无人可用，且交付话术里"管理权限"一项不成立。完成后把 `progress.phase6_link_up` 改 `done`。
 
 7. **验证打通**：
    - NapCat 窗口显示登录成功；
@@ -340,6 +342,7 @@ python <skill目录>\scripts\bot_manager.py start
 | DIY 项 | 当前默认 | 想改就说 | 改完效果 |
 |---|---|---|---|
 | 人格卡 | "大肥鱼"DeepSeek 小鲸鱼 | 重写人格卡文本（pitfalls B5） | 换成任何人设：管家/东北大哥/猫娘… |
+| 管理员 | `$ADMIN` 未提供时此处**必问** | 提供`$ADMIN`（大号）填入 `admins_id` | 你用大号发管理指令/重置指令（pitfalls D4） |
 | 话多话少 | 基础概率 0.1，60 秒最多 6 条 | `initial_probability` / `reply_density_max_replies` | 更粘人 ↔ 更高冷 |
 | 时段活跃度 | 晚间最活跃(1.25)、深夜几乎沉默(0.15) | `reply_time_periods` | 让它半夜彻底闭嘴 / 通宵话痨 |
 | 触发词 | DeepSeek / 大肥鱼 / 吃白饭 | `trigger_keywords` | 给 bot 起新外号，喊了必回 |
