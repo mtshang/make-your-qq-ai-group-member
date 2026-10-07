@@ -319,7 +319,7 @@ Set-Location '<INSTALL>'; python '<skill目录>\scripts\bot_manager.py' start
    ```
    解压到 `$INSTALL\napcat\`。
 
-2. **运行安装器（agent 自己启动，用户不用点任何东西）**：NapCatInstaller.exe **启动后自动下载并安装 QQ 内核（约 200MB，走腾讯 CDN，几分钟），全程无交互**。启动方式：**后台任务拉起**——GUI 安装器同样逃不掉沙箱回收，普通前台命令拉起后命令一结束安装进程就被收走（pitfalls B8，实测）；无后台任务能力按 B8 分层兜底。启动后**自己轮询** `$INSTALL\napcat` 下出现 `NapCat.*.Shell` 目录且安装器进程退出 = 装完（实测 Shell 目录名构建号随版本变，见下一步），**不要等用户回报**。卡住超 5 分钟/报错 → pitfalls A2（重试/换网络）。话术：「安装器窗口弹出来了，自动安装，你不用操作；卡住或报错告诉我」。
+2. **运行安装器（agent 自己启动，用户不用点任何东西）**：NapCatInstaller.exe **启动后自动下载并安装 QQ 内核（约 300MB 腾讯 CDN + 约 30MB 的 Shell.zip 走 GitHub），全程无交互**。启动方式：**后台任务拉起**——GUI 安装器同样逃不掉沙箱回收，普通前台命令拉起后命令一结束安装进程就被收走（pitfalls B8，实测）；无后台任务能力按 B8 分层兜底。启动后**自己轮询** `$INSTALL\napcat` 下出现 `NapCat.*.Shell` 目录且安装器进程退出 = 装完（实测 Shell 目录名构建号随版本变，见下一步），**不要等用户回报**。**卡死判定（实测沉淀）**：内核包 10 分钟不增长 + 安装器零网络连接 = 死透——杀安装器、删残包、重试一次；仍卡 → **别在清代理/换网络上耗**（实测根因是安装器内置的 GitHub 镜像失效，腾讯 CDN 直连是通的），直接走 **pitfalls A2 的 Plan B（绕过 GUI 手动组装）**。话术：「安装器窗口弹出来了，自动安装，你不用操作；卡住或报错告诉我」。
    **装完后必须实测 Shell 目录名，启动 NapCat 前再三强调**：安装器装出的运行目录形如 `NapCat.52230.Shell`，**中间的数字是构建号，每次安装可能不同——文档/示例里的 52230 只是本机样例，绝不许照抄**。列出实际目录：
    ```powershell
    Get-ChildItem $INSTALL\napcat -Directory -Filter "NapCat.*.Shell" | Select-Object -ExpandProperty FullName
@@ -447,7 +447,7 @@ python bot_manager.py kill_napcat    只杀 NapCat（含残留启动窗口）
 | 症状 | 查 |
 |---|---|
 | 下载失败/假文件 | pitfalls A1 |
-| NapCat 装 QQ 内核失败 | pitfalls A2 |
+| 安装器卡死/内核下载停滞 | pitfalls A2（零连接判定 + 绕过 GUI 手动组装） |
 | 配置改了没生效 | pitfalls B1（ASTRBOT_ROOT）/ B3（WebUI 覆盖） |
 | JSON 报 BOM 错 | pitfalls B2 |
 | 人格挂不上 | pitfalls B5（persona_id 不一致） |
