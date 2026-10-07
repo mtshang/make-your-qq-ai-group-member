@@ -118,8 +118,9 @@ def bat_window_pids(where):
 
 
 def kill_tree(pid):
+    # errors="replace" 必须带：taskkill 成功时输出中文（GBK），strict 解码会把读线程炸掉
     subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)],
-                   capture_output=True, text=True)
+                   capture_output=True, text=True, errors="replace")
 
 
 def cmd_status(cfg, base=None):

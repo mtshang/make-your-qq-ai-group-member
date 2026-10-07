@@ -206,14 +206,17 @@ io.open(p, "w", encoding="utf-8-sig").write(
 **立刻验证 API key 可用**（推荐，30 秒防翻车——别等 Phase 7 验收才发现 401）：
 
 ```python
-import urllib.request
+import urllib.request, json
 req = urllib.request.Request("https://api.deepseek.com/models",
     headers={"Authorization": "Bearer <KEY>"})
-print(urllib.request.urlopen(req, timeout=15).status)   # 200 = key 有效
+data = json.load(urllib.request.urlopen(req, timeout=15))
+models = [m["id"] for m in data["data"]]
+print("key 有效，可用模型:", models)
+print("模板模型名核对:", "deepseek-flash" in models)
 ```
 
-- 200 → key 有效，继续；401 → key 抄错/未生效/未充值，**立刻停下问用户**（行为约定第 2 条）；其他服务商把 URL 换成 `provider_sources[0].api_base + /models`。
-- 注意：这步只验鉴权不验模型。若后面聊天报"模型不存在"，回看上方模型名快照警告。
+- key 抄错/未生效/未充值 → 401，**立刻停下问用户**（行为约定第 2 条）；其他服务商把 URL 换成 `provider_sources[0].api_base + /models`。
+- **顺带核对模型名**（上游退役是实测踩过的坑）：打印出的列表里若没有模板用的模型名，按上方快照警告换成列表里的现名再铺配置。
 
 **创建部署状态文件**（Phase 5 的启动全靠它；这也是全程的断点记录）：把 `templates/deploy_state.json` 复制到 `$INSTALL\deploy_state.json`，填两个字段：
 - `astrbot_root` → `$INSTALL\astrbot`；`astrbot_exe` → astrbot.exe 实际路径（uv 默认 `%USERPROFILE%\.local\bin\astrbot.exe`）
@@ -331,7 +334,7 @@ python <skill目录>\scripts\bot_manager.py start
 | 4 | 群里不 @ 说闲话 | 概率触发（0.1），60s 内最多 6 条 |
 | 5 | 群里发一张图 | 视觉模型识图并吐槽 |
 | 6 | 群里**引用一条带图的消息**提问 | 走 caption/vision 链路正常回复，不报 400（验证 flash 模型不接图） |
-| 7 | 查 `$INSTALL\astrbot\logs\` 日志 | 有读空气概率判定/决策相关日志行（决策推理块默认关闭，无推理输出属正常） |
+| 7 | 查 `$INSTALL\astrbot\data\logs\astrbot.log` 日志（v4.28.x 在 data\logs\ 下） | 有读空气概率判定/决策相关日志行（决策推理块默认关闭，无推理输出属正常） |
 
 全部通过 → 进入「交付前 DIY 询问」。任何一步失败 → 按 `references/pitfalls.md` 对应章节排查。
 
