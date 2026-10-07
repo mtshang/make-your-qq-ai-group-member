@@ -17,7 +17,8 @@ bot_manager.py — 一键启动/停止 AstrBot + NapCat（QQ AI 群聊机器人�
     - 窗口标题带 qqaibot- 前缀（qqaibot-AstrBot / qqaibot-NapCat），任务栏好认；
       但杀进程不依赖标题。
 
-配置: 同目录/工作目录的 deploy_state.json（优先）或 bot_manager.json（部署时由 agent 生成）:
+配置: 依次查 脚本目录 -> 脚本上一级（.bot_runtime 副本模式的部署目录）-> 当前目录 的
+    deploy_state.json（优先）或 bot_manager.json（部署时由 agent 生成）:
     {
       "astrbot_root":      "D:\\qqaibot\\astrbot",     <- ASTRBOT_ROOT 指向的数据目录
       "astrbot_exe":       "C:\\Users\\xx\\.local\\bin\\astrbot.exe",
@@ -29,11 +30,14 @@ bot_manager.py — 一键启动/停止 AstrBot + NapCat（QQ AI 群聊机器人�
     - 刻意不做"单窗口聚合日志"：NapCat 首次登录需交互（扫码）、两个进程输出编码不同、
       Ctrl+C 信号传递在 Windows 上不可靠。独立窗口 + 一键启停是可靠性最优解。
     - 首次部署/扫码请按 SKILL.md Phase 5/6 原方式操作；本脚本用于日常启停。
+    - 交付自包含：任意命令运行时把本脚本拷为 <部署目录>\\.bot_runtime\\bot_manager.py（运行时副本），
+      双击 bat 用相对路径调它——skill 目录日后移动/更新/删除不影响已交付的机器人。
     - 标准库实现，无第三方依赖。
 """
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -45,6 +49,7 @@ RUNTIME_DIR = ".bot_runtime"   # 启动 bat 的存放目录（内部产物，用
 CONSOLE_BAT = "机器人启动.bat"   # 用户双击入口：双击即启动，然后进菜单
 CONSOLE_BAT_OLD = ("机器人控制台.bat",)   # 历史命名，生成时顺手清掉
 RENAME_PS1 = "rename_qq_window.ps1"   # QQ 窗口改名辅助脚本（后台尽力而为）
+RUNTIME_MGR = "bot_manager.py"   # 运行时副本：任意命令运行时拷到 .bot_runtime\ 下，双击 bat 调它
 
 # QQ 窗口改名脚本（ASCII only——PS5.1 对无 BOM 文件按 ANSI 读，中文会乱码）。
 # 原理：QQ 主窗口标题会被 QQ 自己重设（登录前后都变），所以轮询多轮用
@@ -92,8 +97,10 @@ def log(msg):
 
 
 def load_config():
-    # 依次找: 脚本同目录 -> 当前目录；deploy_state.json 优先，bot_manager.json 兼容旧部署
-    for base in (os.path.dirname(os.path.abspath(__file__)), os.getcwd()):
+    # 依次找: 脚本同目录 -> 脚本上一级（.bot_runtime 副本模式的部署目录）-> 当前目录
+    # deploy_state.json 优先，bot_manager.json 兼容旧部署
+    here = os.path.dirname(os.path.abspath(__file__))
+    for base in (here, os.path.dirname(here), os.getcwd()):
         for name in CFG_NAMES:
             p = os.path.join(base, name)
             if os.path.exists(p):
@@ -117,6 +124,30 @@ def listening_pids(port):
         parts = line.split()
         # 协议 本地地址 远程地址 状态 PID
         if len(parts) == 5 and parts[3] == "LISTENING" and parts[1].endswith(f":{port}"):
+            if parts[4].isdigit():
+                pids.add(parts[4])
+    return sorted(pids)
+
+
+def pids_connected_to(port):
+    """找与 127.0.0.1:<port> 建立 ESTABLISHED 连接的 PID（NapCat 的 QQ.exe 连 AstrBot 反向 WS）。
+
+    netstat 不依赖 PowerShell——agent 沙箱里 PowerShell 探测可能失灵（假阴性），
+    这条是兜底判定：连接还在 = NapCat 活着/没杀干净。
+    """
+    try:
+        out = subprocess.run(
+            ["netstat", "-ano", "-p", "tcp"],
+            capture_output=True, text=True, errors="replace", timeout=15
+        ).stdout
+    except Exception:
+        return []
+    pids = set()
+    for line in out.splitlines():
+        parts = line.split()
+        # 协议 本地地址 远程地址 状态 PID
+        if (len(parts) == 5 and parts[3] == "ESTABLISHED"
+                and parts[2].endswith(f"127.0.0.1:{port}")):
             if parts[4].isdigit():
                 pids.add(parts[4])
     return sorted(pids)
@@ -172,6 +203,25 @@ def runtime_dir(base):
     return d
 
 
+def ensure_runtime_copy(base):
+    """把本脚本拷贝为部署目录内的运行时副本（交付自包含的关键）。
+
+    双击 bat 引用的是这个**副本**（相对路径 %~dp0），skill 目录日后被移动/更新/删除
+    都不影响已交付的机器人——skill 内文件只用于部署期，长期运行一律用拷贝的副本。
+    返回 True 表示可用相对路径引用副本；False 时调用方退回绝对路径（部署期兜底）。
+    """
+    dst = os.path.join(base, RUNTIME_DIR, RUNTIME_MGR)
+    src = os.path.abspath(__file__)
+    try:
+        if os.path.abspath(dst).lower() != src.lower() and os.path.isfile(src):
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copy2(src, dst)
+            return True
+    except OSError:
+        pass
+    return os.path.isfile(dst)
+
+
 def clean_legacy_bat(base, name):
     """清理旧版本直接生成在安装根目录的同名 bat（可能被运行中的 cmd 锁住，忽略失败）。"""
     legacy = os.path.join(base, name)
@@ -183,11 +233,13 @@ def clean_legacy_bat(base, name):
         pass
 
 
-def ensure_console_bat(base):
+def ensure_console_bat(base, use_relative=True):
     """生成/刷新双击式启动 bat：**双击即先执行一轮启动（清残留+启动）**，完事进菜单。
 
     防呆：用户双击的意图就是"让机器人跑起来"，所以默认动作就是启动，不用再按 1。
-    任意 bot_manager 命令运行时都会刷新——挪动 skill 目录后重跑一次即可修正路径。
+    任意 bot_manager 命令运行时都会刷新。脚本引用优先走**相对路径**（运行时副本
+    %~dp0.bot_runtime\\bot_manager.py）——部署目录整体挪动/拷到别的盘都不失效；
+    副本不可用时退回当前脚本的绝对路径（部署期兜底）。
     """
     for old in CONSOLE_BAT_OLD:
         try:
@@ -197,7 +249,9 @@ def ensure_console_bat(base):
         except OSError:
             pass
     try:
-        manager = os.path.abspath(__file__)
+        # 相对路径引用运行时副本（交付自包含）；副本不可用时退回绝对路径（部署期兜底）
+        manager = ("%~dp0.bot_runtime\\bot_manager.py" if use_relative
+                   else os.path.abspath(__file__))
         # 注意：bat 里满是 %~dp0 / %choice% 这类字面 %，绝不能用 % 格式化，用 f-string
         content = (
             '@echo off\r\n'
@@ -236,17 +290,22 @@ def cmd_status(cfg, base=None):
     dash = listening_pids(DASH_PORT)
     ws = listening_pids(WS_PORT)
     nc_root = cfg.get("napcat_root", "").strip()
+    # WS 连接兜底：沙箱里 PowerShell 探测可能失灵（假阴性 STOPPED），
+    # AstrBot 在监听时若有 ESTABLISHED 到 6199 的连接，NapCat 就是活的
+    ws_clients = pids_connected_to(WS_PORT) if dash else []
     if nc_root:
         qq = napcat_qq_pids(nc_root)
         qq_line = f"QQ.exe PID {','.join(qq) or '-'}"
-        qq_state = "RUNNING" if qq else "STOPPED"
+        qq_state = "RUNNING" if (qq or ws_clients) else "STOPPED"
+        if not qq and ws_clients:
+            qq_line += f" + WS连接 PID {','.join(ws_clients)}（PowerShell 探测失灵，按连接兜底判定）"
     else:
         qq, qq_line, qq_state = [], "未配置（Phase 6 后回填）", "N/A"
     log(f"AstrBot : {'RUNNING' if dash else 'STOPPED'}"
         f"  (WebUI:{DASH_PORT} {'监听中' if dash else '无'}, 反向WS:{WS_PORT} {'监听中' if ws else '无'}, PID {','.join(dash) or '-'})")
     log(f"NapCat  : {qq_state}  ({qq_line})")
-    log("整体状态: " + ("正常运行" if dash and qq else ("部分未启动" if (dash or qq) else "全部未启动")))
-    return 0 if (dash and qq) else 1
+    log("整体状态: " + ("正常运行" if dash and (qq or ws_clients) else ("部分未启动" if (dash or qq or ws_clients) else "全部未启动")))
+    return 0 if (dash and (qq or ws_clients)) else 1
 
 
 def cmd_kill_astrbot(cfg, base=None):
@@ -319,7 +378,9 @@ def cmd_kill_napcat(cfg, base=None):
         kill_tree(pid)
     log(f"[清理] NapCat 相关 bat 窗口: {'已杀 ' + str(len(bats)) + ' 个' if bats else '无'}")
 
-    left = napcat_qq_pids(nc_root) if nc_root else []
+    left = set(napcat_qq_pids(nc_root) if nc_root else [])
+    left |= set(pids_connected_to(WS_PORT))   # 连接还在 = 没杀干净（netstat 兜底，不依赖 PowerShell）
+    left = sorted(left)
     log("[复查] NapCat 进程 " + ("仍有残留（PID %s）" % ",".join(left) if left else "已清空"))
     return 0 if not left else 1
 
@@ -428,7 +489,8 @@ def main():
         print(__doc__)
         sys.exit(2)
     cfg, base = load_config()
-    ensure_console_bat(base)   # 任意命令都刷新双击入口（含挪目录后的路径修正）
+    use_rel = ensure_runtime_copy(base)   # 先落运行时副本（双击 bat 用相对路径调它）
+    ensure_console_bat(base, use_rel)   # 任意命令都刷新双击入口
     return {"start": cmd_start, "stop": cmd_stop, "status": cmd_status,
             "scan": cmd_scan,
             "kill_astrbot": cmd_kill_astrbot, "kill_napcat": cmd_kill_napcat}[cmd](cfg, base)

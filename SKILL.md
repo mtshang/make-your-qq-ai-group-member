@@ -59,6 +59,7 @@ QQ 好友/群聊
    - 「扫码窗口出现了，请用**小号**扫码；**登录成功前千万别关**这个窗口」
    - 「AstrBot 服务窗口已开并在滚日志，保留别动，你不用操作」
    不许默默开窗口，也不许默默关窗口。全程窗口处置对照见「终端窗口一览」表。
+7. **长期使用必须用拷贝，不直接依赖 skill 目录**：skill 内的脚本/模板只服务部署期。交付后要长期运行或引用的东西（bot_manager、启动脚本等）一律**用拷贝到部署目录的副本**——bot_manager 任意命令运行时自动把自身拷为 `$INSTALL\.bot_runtime\bot_manager.py`（运行时副本），`机器人启动.bat` 用相对路径（`%~dp0`）调它，skill 目录日后移动/更新/删除都不影响已交付的机器人。agent 给用户写自启动/快捷方式/文档时**只准引用部署目录内的路径，禁止引用 skill 目录内的路径**；确需长期使用 skill 里其他文件时同样先拷贝再用。
 
 ## 前置条件（Phase 0 检查）
 
@@ -303,6 +304,12 @@ python <skill目录>\scripts\bot_manager.py start
    只有一个就用它；出现多个则取修改时间最新的那个。
    **装完立刻回填 deploy_state.json**：`napcat_shell_dir` → 上面实测到的完整路径、`napcat_root` → `$INSTALL\napcat`——**此后的 NapCat 启动/扫码/停止/清理全走 bot_manager**（scan/start/stop/kill_napcat），agent 不要再手动 cd + 跑 napcat.bat（手动路径事故 pitfalls C8）。若 `napcat_shell_dir` 填错（照抄了示例构建号/路径不存在），scan 会明确报"目录不存在"，此时回到本步骤重新实测再回填。
 
+> **NapCat 启动 = 全流程最高频事故点**（启动失败 / 旧进程杀不干净，agent 在这里翻车最多）。四条铁律：
+> 1. 启动/扫码/重启**一律走 bot_manager**（`scan` / `start`，自带"先杀残留再启动"）——**绝不手动跑 napcat.bat / napcat.quick.bat**（路径事故 pitfalls C8）。
+> 2. **默认上一次实例还活着**：不要自己判断"应该已经停了"，bot_manager 每次启动前自动杀（同号多开必互踢，C5），杀完自己会复查并报残留 PID。
+> 3. 启动失败按序对号：窗口秒死+日志戛然而止 → B8（沙箱回收，agent 环境特有）；报 Error Code 2 → C1（bootmain 陷阱）；不出二维码 → C4（qrcode.png 落盘兜底）；报目录不存在 → 回步骤 2 重新实测 Shell 目录名。
+> 4. 状态存疑用双通道验证：`status` 的 QQ 探测靠 PowerShell（agent 沙箱里可能失灵、**假阴性 STOPPED**），bot_manager 已内置 6199 WS 连接兜底（有 ESTABLISHED 连接就是活的）；自己排查用 `netstat -ano | findstr :6199` 交叉验证——**别被假阴性骗去重复启动**（重复启动 → 同号互踢 C5）。
+
 3. **启动并扫码**：
    ```powershell
    python bot_manager.py scan
@@ -327,7 +334,7 @@ python <skill目录>\scripts\bot_manager.py start
    d["network"]["websocketClients"] = src["network"]["websocketClients"]
    io.open(p, "w", encoding="utf-8").write(json.dumps(d, ensure_ascii=False, indent=2))
    ```
-   然后重启 NapCat：关掉旧窗口，重新跑 `napcat.quick.bat`（已登录免扫码）。
+   然后重启 NapCat：`python bot_manager.py start`（自带先杀后启，走 quick.bat 免扫码）——**不要手动跑 napcat.quick.bat**。
    备选：也可在 NapCat WebUI「网络配置」页手动加反向 WS（`ws://127.0.0.1:6199/ws`），效果相同。
 
 6. **管理员确认**：`admins_id` 在 Phase 3 已填入**用户大号**（不是 bot 号）——确认占位符已替换；若用户开工时选了"稍后提供"，此处**必须**问一次大号 QQ 并补填，**重启 AstrBot**（`bot_manager.py stop` → `start`）。没有管理员时部分管理指令无人可用，且交付话术里"管理权限"一项不成立。完成后把 `progress.phase6_link_up` 改 `done`。
@@ -390,10 +397,10 @@ python bot_manager.py kill_napcat    只杀 NapCat（含残留启动窗口）
 - **start = 先杀对应组件的全部残留再启动**（防同号多开互踢，pitfalls C5）。重复跑 start = 重启服务（NapCat 免扫码自动重连，AstrBot 中断约 1 分钟）——不是"已运行就跳过"。
 - **进程定位按端口/命令行/可执行路径，绝不按窗口标题**（标题匹配范围广会误杀，pitfalls C6）；窗口标题带 `qqaibot-` 前缀（`qqaibot-AstrBot` / `qqaibot-NapCat`）仅供任务栏辨识。
 
-**双击入口（交付给用户的主入口）**：bot_manager 任意命令运行时，自动在 `$INSTALL\` 生成/刷新 **`机器人启动.bat`**——**双击即自动执行一轮启动（先清残留再启动）**，随后进入菜单（可再次启动 / 停止 / 看状态），不用记任何命令。内部启动 bat 收在 `$INSTALL\.bot_runtime\`，用户不需要碰；挪动 skill 目录后重跑任意 bot_manager 命令即可刷新控制台里的路径。
+**双击入口（交付给用户的主入口）**：bot_manager 任意命令运行时，先把自身拷贝为 `$INSTALL\.bot_runtime\bot_manager.py`（**运行时副本**），再生成/刷新 **`机器人启动.bat`**——bat 用**相对路径**（`%~dp0`）调副本，**双击即自动执行一轮启动（先清残留再启动）**，随后进入菜单（可再次启动 / 停止 / 看状态），不用记任何命令。因此 **skill 目录日后移动/更新/删除都不影响已交付的机器人**（行为约定第 7 条），部署目录整体挪动/拷到别的盘也照样能跑。内部启动 bat 同样收在 `.bot_runtime\`，用户不需要碰。
 
 1. **补全配置**：`$INSTALL\deploy_state.json` 在 Phase 3 已创建，把两个空字段填上：`napcat_shell_dir` → Phase 6 装出的实际目录（形如 `D:\qqaibot\napcat\NapCat.52230.Shell`——**52230 只是示例构建号，每次安装不同，必须实测，见 Phase 6 步骤 2**）；`napcat_root` → `$INSTALL\napcat`。同时把 `qq` 字段填上（Phase 6 已读到）。填完 `status` 应能探测 NapCat（STOPPED 属正常）。
-2. **验证**：先跑 `status` 看状态——AstrBot 应 STOPPED；**NapCat 若仍是 RUNNING（Phase 6 留下的登录态）不要硬 stop**（杀登录实例 = 重新扫码，pitfalls C5/C6）。直接跑 `start` 完整验证即可：它自带"先杀再启"（NapCat 免扫码重启，pitfalls C7），跑完 `status` 两项应 RUNNING。**stop/kill 会真杀进程，只能在部署完成、确认无其他业务共用时执行**。
+2. **验证**：先跑 `status` 看状态——AstrBot 应 STOPPED；**NapCat 若仍是 RUNNING（Phase 6 留下的登录态）不要硬 stop**（杀登录实例 = 重新扫码，pitfalls C5/C6）。直接跑 `start` 完整验证即可：它自带"先杀再启"（NapCat 免扫码重启，pitfalls C7），跑完 `status` 两项应 RUNNING，并确认 `$INSTALL\.bot_runtime\bot_manager.py` 已生成（运行时副本，双击 bat 的依赖——没有就重跑任意 bot_manager 命令）。**stop/kill 会真杀进程，只能在部署完成、确认无其他业务共用时执行**。
 3. **交付话术**：日常双击 `$INSTALL\机器人启动.bat`（双击即启动，菜单里可停止/看状态），并**原话告知关闭方法**："关机器人 = 控制台按 [2]，或者关掉 `qqaibot-AstrBot` 和 `qqaibot-NapCat` 两个窗口；控制台窗口本身随时可关、不影响机器人"；**首次扫码和调试仍按 Phase 5/6 原方式**（napcat.bat 扫码需要 NapCat 自己的窗口交互）。`start` 自动生成的内部启动 bat 在 `$INSTALL\.bot_runtime\` 下——**告诉用户不需要、也不要手动运行任何 bat**，双击控制台就是全部操作。
 4. **交付前必须停掉 agent 自己的保活后台任务**（沙箱 agent 部署期用来撑进程的，pitfalls B8）——它是"进程死了就重新拉起"的循环，交付后若还在运行，用户跑 `start` 杀掉的实例会被它再次拉起，两套实例叠加 → 同号互踢（C5）复发。**判别特征：某实例被杀后带着新 PID 复活**（实测：杀 PID 6464 → 复活成 41956）。停掉保活后用户再跑 start，才算真正接管。
 
