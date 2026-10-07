@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "updated": "2026-10-08",
-  "notes": "日志判读一览（排障先读文件）：NapCat 注入配置时顺手开 fileLog（窗口是最后手段；管道会弄死二维码渲染故不做重定向）；扫码阶段交还控制权；A2 Plan B 组装闭环；版本检查机制；bot_manager 全程骨架；安装器无人值守；29 条踩坑"
+  "notes": "bot QQ 常为后台进程无窗口（别请用户截图 QQ 窗口）：登录看 config 新文件、出码找 qrcode.png、杀进程按 exe 路径（属性'位置'=ExecutablePath，与主号天然不同）；日志判读一览（NapCat fileLog）；扫码交还控制权；A2 Plan B 组装闭环；29 条踩坑"
 }

@@ -278,7 +278,7 @@ python <skill目录>\scripts\download.py https://github.com/Him666233/astrbot_pl
 | NapCat 安装器窗口 | Phase 6 步骤 2 | agent 拉起 | **启动即自动安装，用户无需点任何东西**；**窗口保留等装完**（关窗=中断安装进程）；agent 自己轮询 `NapCat.*.Shell` 目录出现 + 安装器进程退出 = 装完，不等用户回报 |
 | NapCat 扫码窗口 | Phase 6 步骤 3 | **用户** | **用小号扫码**；**登录成功前千万别关**；成功后窗口保留（协议端服务本体） |
 | NapCat 常驻窗口（标题 `qqaibot-NapCat`） | Phase 6 步骤 5 重启后 | agent 拉起 | **保留**（协议端服务本体） |
-| bot 的 QQ 客户端窗口（标题 `qqaibot-QQ-<QQ号>`） | NapCat 启动登录后 | 自动改名 | **保留**。启动时后台自动改名（防与主号 QQ 混淆，尽力而为——QQ 可能自己改回标题，改名失败不影响功能）；`kill_napcat` 会连这个窗口的进程一起定位杀掉 |
+| bot 的 QQ（NapCat 经 bootmain **后台注入拉起，常见形态是后台进程、没有可见窗口**） | NapCat 启动后 | agent | **别指望窗口，也别请用户截图"QQ 窗口"**（没有窗口可截，任务栏只有一串同名 QQ.exe）。进程定位主力是 **exe 路径**——bot 的 QQ.exe 在 `NapCat.Shell` 目录下，与主号（Program Files 下）天然不同，`kill_napcat` 按此精确杀不误伤；窗口存在时才顺带自动改名（尽力而为，失败不影响任何功能） |
 
 **交付后日常（关机器人关哪些窗口，必须原话告知用户）**（bot_manager 从 Phase 5 起全程在用，用户日常面对的就是最多 3 个窗口）：职责各不同——
 - `qqaibot-AstrBot`、`qqaibot-NapCat`：两个**服务本体**窗口。**关闭机器人 = 控制台按 `[2]`（推荐，反序杀干净）**；或者直接手关这两个窗口（等效强停对应组件，可行但非首选）。**不要只关其一**（会留半停状态，Bot 不响应却占着端口）。
@@ -355,11 +355,13 @@ Set-Location '<INSTALL>'; python '<skill目录>\scripts\bot_manager.py' start
    - **收到"扫完了"才继续步骤 4（读号）**；用户报告没出码 → 按序处理：① 找 Shell 目录下落盘的 `qrcode.png`（`*.png`），有就把图发给用户扫（pitfalls C4）；② 没有就**重跑一次 `scan`**（自带先杀再启，第二次终端必出码，实测）——别反复杀重试（C5 规矩）。
    - 屏幕上有停在 `Press any key` 的旧窗口不用管——那是已死进程的残留，scan/start/kill_napcat 都会自动清掉。
 
-4. **读取实际 QQ 号**（不问用户，扫码自动获得）：登录成功后 NapCat 会在
+4. **读取实际 QQ 号**（不问用户，扫码自动获得）——**登录成功的文件侧标志**：登录成功后 NapCat 会在
    ```
    NapCat.*.Shell\versions\*\resources\app\napcat\config\
    ```
-   下生成 `onebot11_<QQ号>.json` / `napcat_<QQ号>.json`——从文件名直接读出 QQ 号（记为 `$QQ`）。**立刻写进 deploy_state.json** 的 `qq` 字段（`napcat_shell_dir`/`napcat_root` 已在步骤 2 回填，确认无误即可）。
+   下生成 `onebot11_<QQ号>.json` / `napcat_<QQ号>.json`——从文件名直接读出 QQ 号（记为 `$QQ`）。收到"扫完了"后**先看这个目录有没有新文件**：有 = 登录成功；没有 = 没登上（二维码过期/扫的是别人的 → 重跑 `scan` 出新码）。
+   **⚠ bot 的 QQ 大概率是后台进程、没有窗口**（NapCat bootmain 后台注入拉起，任务栏只有一串同名 QQ.exe）——**别请用户截图"QQ 窗口"**（没有窗口可截）；要看二维码就自己找 `qrcode.png` 发给用户（C4），要判登录就看上面的 config 文件。任务栏那串同名 QQ.exe 分不清主号 bot 号**完全不影响操作**——杀/探全按 exe 路径（bot 的在 NapCat.Shell 目录下，与主号 Program Files 天然不同，见 C6）。
+   **立刻写进 deploy_state.json** 的 `qq` 字段（`napcat_shell_dir`/`napcat_root` 已在步骤 2 回填，确认无误即可）。
    **读号后立刻改 `napcat.quick.bat` 的占位账号**：OneKey 硬编码 `-q 10086`，把占位号替换为 `$QQ`（Python/编辑器均可）——不改则交付后用户每次重启都要重新扫码（pitfalls C7）。
 
 5. **注入反连配置**：NapCat 生成的配置里没有反向 WS 设置。用脚本把模板的 `network.websocketClients` 合并进生成的 `onebot11_$QQ.json`（其余字段保持原样），**顺手打开 NapCat 文件日志（`fileLog`，默认关着——不开的话日志只在窗口里，agent 排障就得求用户抄窗口，实测教训）**：
