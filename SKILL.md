@@ -255,7 +255,10 @@ python scripts/download.py https://github.com/Him666233/astrbot_plugin_group_cha
 | NapCat 扫码窗口 | Phase 6 步骤 3 | **用户** | **用小号扫码**；**登录成功前千万别关**；成功后窗口保留（协议端服务本体） |
 | NapCat 常驻窗口（标题 `qqaibot-NapCat`） | Phase 6 步骤 5 重启后 | agent 拉起 | **保留**（协议端服务本体） |
 
-**交付后日常**（Phase 8 配好 bot_manager 后）：`start` 开出的 AstrBot + NapCat 两个窗口（标题 `qqaibot-` 前缀）就是服务本体，**别手点右上角 X**（等于直接拔电源）；要停就走 `stop`，杀单个组件用 `kill_astrbot` / `kill_napcat`。`stop`/`kill` 后窗口停在按键提示，随手关掉即可（再次 `start` 时也会自动清掉）。
+**交付后日常（关机器人关哪些窗口，必须原话告知用户）**（Phase 8 配好 bot_manager 后）：桌面上同时存在 3 个窗口，职责各不同——
+- `qqaibot-AstrBot`、`qqaibot-NapCat`：两个**服务本体**窗口。**关闭机器人 = 控制台按 `[2]`（推荐，反序杀干净）**；或者直接手关这两个窗口（等效强停对应组件，可行但非首选）。**不要只关其一**（会留半停状态，Bot 不响应却占着端口）。
+- `qqaibot 机器人启动`（控制台窗口）：只是操作面板，**随时可关，不影响机器人运行**。
+`stop`/`kill`/关窗口后，服务窗口若停在按键提示，随手关掉即可（再次 `start` 时也会自动清掉）。
 
 ## Phase 5：启动 AstrBot（两次启动法）
 
@@ -379,14 +382,14 @@ python bot_manager.py kill_napcat    只杀 NapCat（含残留启动窗口）
 
 1. **补全配置**：`$INSTALL\deploy_state.json` 在 Phase 3 已创建，把两个空字段填上：`napcat_shell_dir` → Phase 6 装出的实际目录（如 `D:\qqaibot\napcat\NapCat.52230.Shell`）；`napcat_root` → `$INSTALL\napcat`。同时把 `qq` 字段填上（Phase 6 已读到）。填完 `status` 应能探测 NapCat（STOPPED 属正常）。
 2. **验证**：先跑 `status` 看状态——AstrBot 应 STOPPED；**NapCat 若仍是 RUNNING（Phase 6 留下的登录态）不要硬 stop**（杀登录实例 = 重新扫码，pitfalls C5/C6）。直接跑 `start` 完整验证即可：它自带"先杀再启"（NapCat 免扫码重启，pitfalls C7），跑完 `status` 两项应 RUNNING。**stop/kill 会真杀进程，只能在部署完成、确认无其他业务共用时执行**。
-3. **交付话术**：日常双击 `$INSTALL\机器人启动.bat`（双击即启动，菜单里可停止/看状态）；**首次扫码和调试仍按 Phase 5/6 原方式**（napcat.bat 扫码需要 NapCat 自己的窗口交互）。`start` 自动生成的内部启动 bat 在 `$INSTALL\.bot_runtime\` 下——**告诉用户不需要、也不要手动运行任何 bat**，双击控制台就是全部操作。
+3. **交付话术**：日常双击 `$INSTALL\机器人启动.bat`（双击即启动，菜单里可停止/看状态），并**原话告知关闭方法**："关机器人 = 控制台按 [2]，或者关掉 `qqaibot-AstrBot` 和 `qqaibot-NapCat` 两个窗口；控制台窗口本身随时可关、不影响机器人"；**首次扫码和调试仍按 Phase 5/6 原方式**（napcat.bat 扫码需要 NapCat 自己的窗口交互）。`start` 自动生成的内部启动 bat 在 `$INSTALL\.bot_runtime\` 下——**告诉用户不需要、也不要手动运行任何 bat**，双击控制台就是全部操作。
 4. **交付前必须停掉 agent 自己的保活后台任务**（沙箱 agent 部署期用来撑进程的，pitfalls B8）——它是"进程死了就重新拉起"的循环，交付后若还在运行，用户跑 `start` 杀掉的实例会被它再次拉起，两套实例叠加 → 同号互踢（C5）复发。**判别特征：某实例被杀后带着新 PID 复活**（实测：杀 PID 6464 → 复活成 41956）。停掉保活后用户再跑 start，才算真正接管。
 
 > 设计边界：刻意不做"单窗口聚合两进程日志"——NapCat 首次登录要交互、两进程输出编码不同、Windows 下 Ctrl+C 信号转发不可靠。独立窗口 + 一键启停是可靠性最优解。
 
 ## 日常使用（交付时告知用户）
 
-- **日常启动/停止**：**双击 `$INSTALL\机器人启动.bat`**（双击即启动，菜单可停止/看状态）——这是给用户的主入口；命令行等价 `python bot_manager.py start` / `stop`，杀单个组件 `kill_astrbot` / `kill_napcat`（`start` 本身自带"先杀残留再启动"）。手动方式（调试用）：先 `astrbot run`（窗口保持开）→ 再 NapCat 的 `napcat.quick.bat`（免扫码）。关机重开后双击启动即可。
+- **日常启动/停止**：**双击 `$INSTALL\机器人启动.bat`**（双击即启动，菜单可停止/看状态）——这是给用户的主入口。**关闭机器人**：控制台按 `[2]`，或手关 `qqaibot-AstrBot` 与 `qqaibot-NapCat` 两个窗口（控制台窗口不影响机器人，随意关）；命令行等价 `python bot_manager.py start` / `stop`，杀单个组件 `kill_astrbot` / `kill_napcat`（`start` 本身自带"先杀残留再启动"）。手动方式（调试用）：先 `astrbot run`（窗口保持开）→ 再 NapCat 的 `napcat.quick.bat`（免扫码）。关机重开后双击启动即可。
 - **改配置**：改文件 → **重启 AstrBot 后**才能动 WebUI（pitfalls B3 铁律，顺序反了修改全丢）。
 - **WebUI 密码**：首登用预设密码（环境变量）或日志里的随机密码，登录后立即在 WebUI 改掉（pitfalls B6）。
 - **省 token**：决策 AI 推理（`enable_decision_ai_reasoning`）**默认已关闭**；若决策质量不满意可开启观察日志，确认后记得关回（它对每条过筛消息都输出推理块，token 大头）。
