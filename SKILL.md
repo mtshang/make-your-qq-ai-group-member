@@ -246,13 +246,13 @@ python scripts/download.py https://github.com/Him666233/astrbot_plugin_group_cha
 | 窗口 | 出现于 | 谁操作 | 处置 + 话术要点 |
 |---|---|---|---|
 | agent 的命令窗口 | 全程 | agent | 用户无需理会 |
-| AstrBot 服务窗口 | Phase 5 两次启动、验收期 | agent 拉起 | **保留**（服务本体）：「AstrBot 窗口已开并在滚日志，保留别动，你不用操作」 |
+| AstrBot 服务窗口（标题 `qqaibot-AstrBot`） | Phase 5 两次启动、验收期 | agent 拉起 | **保留**（服务本体）：「AstrBot 窗口已开并在滚日志，保留别动，你不用操作」 |
 | AstrBot 窗口（stop 后残留） | Phase 5 写库/改配置前 | agent | 服务被 stop 后窗口停在"请按任意键继续"——**属正常残留**，用户随手关掉即可，agent 不必处理 |
 | NapCat 安装器窗口 | Phase 6 步骤 2 | **用户** | **用户点安装**；装完回"装好了"；**窗口可关** |
 | NapCat 扫码窗口 | Phase 6 步骤 3 | **用户** | **用小号扫码**；**登录成功前千万别关**；成功后窗口保留（协议端服务本体） |
-| NapCat 常驻窗口 | Phase 6 步骤 5 重启后 | agent 拉起 | **保留**（协议端服务本体） |
+| NapCat 常驻窗口（标题 `qqaibot-NapCat`） | Phase 6 步骤 5 重启后 | agent 拉起 | **保留**（协议端服务本体） |
 
-**交付后日常**（Phase 8 配好 bot_manager 后）：`start` 开出的 AstrBot + NapCat 两个窗口就是服务本体，**别手点右上角 X**（等于直接拔电源）；要停就走 `stop`，`stop` 后窗口停在按键提示，随手关掉即可。
+**交付后日常**（Phase 8 配好 bot_manager 后）：`start` 开出的 AstrBot + NapCat 两个窗口（标题 `qqaibot-` 前缀）就是服务本体，**别手点右上角 X**（等于直接拔电源）；要停就走 `stop`，杀单个组件用 `kill_astrbot` / `kill_napcat`。`stop`/`kill` 后窗口停在按键提示，随手关掉即可（再次 `start` 时也会自动清掉）。
 
 ## Phase 5：启动 AstrBot（两次启动法）
 
@@ -359,23 +359,28 @@ python <skill目录>\scripts\bot_manager.py start
 
 ## Phase 8（可选）：一键启动器 bot_manager
 
-验收通过后给用户配置日常启停工具（免记启动顺序、一键全停）。脚本 `scripts/bot_manager.py`，三个命令：
+验收通过后给用户配置日常启停工具（免记启动顺序、一键全停）。脚本 `scripts/bot_manager.py`，五个命令：
 
 ```
-python bot_manager.py start    按序启动：AstrBot 先（等 WebUI 就绪）→ NapCat 后（各开独立窗口，已启动的自动跳过）
-python bot_manager.py stop     反序停止：NapCat(QQ.exe) 先，AstrBot 后
-python bot_manager.py status   只读探测两服务状态
+python bot_manager.py start          先清残留再全新启动：AstrBot 先（等 WebUI 就绪）→ NapCat 后（各开独立窗口）
+python bot_manager.py stop           全停：NapCat(QQ.exe) 先，AstrBot 后
+python bot_manager.py status         只读探测两服务状态
+python bot_manager.py kill_astrbot   只杀 AstrBot（含残留启动窗口）
+python bot_manager.py kill_napcat    只杀 NapCat（含残留启动窗口）
 ```
+
+- **start = 先杀对应组件的全部残留再启动**（防同号多开互踢，pitfalls C5）。重复跑 start = 重启服务（NapCat 免扫码自动重连，AstrBot 中断约 1 分钟）——不是"已运行就跳过"。
+- **进程定位按端口/命令行/可执行路径，绝不按窗口标题**（标题匹配范围广会误杀，pitfalls C6）；窗口标题带 `qqaibot-` 前缀（`qqaibot-AstrBot` / `qqaibot-NapCat`）仅供任务栏辨识。
 
 1. **补全配置**：`$INSTALL\deploy_state.json` 在 Phase 3 已创建，把两个空字段填上：`napcat_shell_dir` → Phase 6 装出的实际目录（如 `D:\qqaibot\napcat\NapCat.52230.Shell`）；`napcat_root` → `$INSTALL\napcat`。同时把 `qq` 字段填上（Phase 6 已读到）。填完 `status` 应能探测 NapCat（STOPPED 属正常）。
-2. **验证**：先跑 `status` 看状态——AstrBot 应 STOPPED；**NapCat 若仍是 RUNNING（Phase 6 留下的登录态）不要硬 stop**（杀登录实例 = 重新扫码，pitfalls C5/C6），`start` 会自动跳过在跑的、只补起 AstrBot。确认 AstrBot 正常后可再 `stop` → `start` 完整走一遍（此时 quick.bat 已是真实 QQ，NapCat 免扫码重启）。**stop 会真杀进程，只能在部署完成、确认无其他业务共用时执行**。
+2. **验证**：先跑 `status` 看状态——AstrBot 应 STOPPED；**NapCat 若仍是 RUNNING（Phase 6 留下的登录态）不要硬 stop**（杀登录实例 = 重新扫码，pitfalls C5/C6）。直接跑 `start` 完整验证即可：它自带"先杀再启"（NapCat 免扫码重启，pitfalls C7），跑完 `status` 两项应 RUNNING。**stop/kill 会真杀进程，只能在部署完成、确认无其他业务共用时执行**。
 3. **交付话术**：日常开机用 `start`，关机/维护用 `stop`；**首次扫码和调试仍按 Phase 5/6 原方式**（napcat.bat 扫码需要 NapCat 自己的窗口交互）。
 
 > 设计边界：刻意不做"单窗口聚合两进程日志"——NapCat 首次登录要交互、两进程输出编码不同、Windows 下 Ctrl+C 信号转发不可靠。独立窗口 + 一键启停是可靠性最优解。
 
 ## 日常使用（交付时告知用户）
 
-- **日常启动/停止**：一键 `python bot_manager.py start` / `stop`（配置好 Phase 8 后）；手动方式：先 `astrbot run`（窗口保持开）→ 再 NapCat 的 `napcat.quick.bat`（免扫码）。关机重开后按此顺序。
+- **日常启动/停止**：一键 `python bot_manager.py start` / `stop`（配置好 Phase 8 后）；杀单个组件 `kill_astrbot` / `kill_napcat`（`start` 本身自带"先杀残留再启动"）。手动方式：先 `astrbot run`（窗口保持开）→ 再 NapCat 的 `napcat.quick.bat`（免扫码）。关机重开后按此顺序。
 - **改配置**：改文件 → **重启 AstrBot 后**才能动 WebUI（pitfalls B3 铁律，顺序反了修改全丢）。
 - **WebUI 密码**：首登用预设密码（环境变量）或日志里的随机密码，登录后立即在 WebUI 改掉（pitfalls B6）。
 - **省 token**：决策 AI 推理（`enable_decision_ai_reasoning`）**默认已关闭**；若决策质量不满意可开启观察日志，确认后记得关回（它对每条过筛消息都输出推理块，token 大头）。
