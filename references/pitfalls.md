@@ -177,9 +177,10 @@
   - **软限**：`soft_limit_ratio`（0.6 × 硬限起，向 AI 注入"少说话"提示，让它自然收敛）。
 - **当前配置**：60 秒窗口 / 硬限 6 条 / 软限比例 0.6。嫌吵调小 `max_replies`，嫌冷调大或调高 `initial_probability`。
 
-### D8. 概率性 @ 和引用不生效 / 每次都 @
-- **原因**：AstrBot 主配置 `reply_with_mention` / `reply_with_quote` 是**无条件装饰**（开启则 100% @ 或引用）。
-- **当前方案**：主配置里两项为 `false`，由自研概率插件（`astrbot_plugin_prob_mention`，若部署）在装饰钩子里按概率决定。排查顺序：先确认主配置两项为 false，再查插件是否加载。
+### D8. 回复从不 @ 人 / 想要 @ 或引用
+- **先分清**：默认部署下 bot 回复是**纯文本**（不 @ 不引用）——这是主配置 `reply_with_mention` / `reply_with_quote` 均为 `false` 的**预期行为**，不是故障。
+- **想要"每次必 @"**：把 `reply_with_mention` 改 `true`（引用同理 `reply_with_quote`）。二者是**无条件装饰**，开了就 100% 触发。
+- **想要概率性 @/引用**（有时 @ 有时不 @）：上游插件没有该功能，需自装装饰类插件（如自研的 `astrbot_plugin_prob_mention`，不在本 skill 分发范围），在装饰钩子里按概率决定。
 
 ### D9. 空白名单"放行"是上游行为，不是配置约定
 - **依赖**：模板里 `platform_settings.enable_id_white_list: true` 且 `id_whitelist: []`，依赖 AstrBot 白名单校验"空名单=放行"的源码行为（`whitelist_check/stage.py`，当前版本已实证）。

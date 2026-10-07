@@ -32,7 +32,6 @@ MIRRORS = [
     "https://ghfast.top/",
     "https://gh-proxy.com/",
     "https://ghproxy.net/",
-    "https://mirror.ghproxy.com/",
     "",
 ]
 

@@ -35,9 +35,9 @@ QQ 好友/群聊
    | Agent | 接入方式 |
    |---|---|
    | **WorkBuddy** | 直接把文件夹/zip 拖进对话 |
-   | **Claude Code**（推荐安装式） | 解压/克隆到 `~/.claude/skills/`（全局）或项目 `.claude/skills/` 下，新会话自动识别，可 `/make-your-qq-ai-group-member` 调用 |
-   | **Claude Code**（免安装式） | 发路径，说「读 SKILL.md 按流程执行」 |
-   | **Codex / 其他 CLI Agent** | 发路径或 zip，说「读 SKILL.md 按流程执行」 |
+   | **终端类 Agent**（Claude Code / Codex 等，推荐） | 发文件夹路径或 zip，说「读 SKILL.md 按流程执行」 |
+   | **其他桌面版 Agent**（有交互操作窗口的软件） | 同上：把文件夹/zip 给它 + 说「读 SKILL.md 按流程执行」 |
+   | **Claude Code**（可选安装式） | 解压到 `~/.claude/skills/`（全局）或项目 `.claude/skills/` 下，新会话自动识别，可 `/make-your-qq-ai-group-member` 调用 |
 
 3. Agent 会依次问你三件事：**bot 用的 QQ 小号**、**大模型 API key**（没有会给你创建引导，推荐 DeepSeek）、**安装到哪个目录**（默认 `D:\qqaibot`）
 4. 剩下全自动：下载（国内镜像轮换）→ 配置 → 启动 → 出二维码扫码 → 七项全链路验收

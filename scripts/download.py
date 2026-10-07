@@ -22,7 +22,6 @@ MIRRORS = [
     "https://ghfast.top/",
     "https://gh-proxy.com/",
     "https://ghproxy.net/",
-    "https://mirror.ghproxy.com/",
     "",
 ]
 
@@ -39,10 +38,13 @@ def fetch(url: str, out_path: str) -> bool:
     with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
         total = resp.getheader("Content-Length")
         total = int(total) if total else None
-        # 先读文件头判断是不是真文件（zip 头或任意非 HTML 内容）
+        # 先读文件头判断是不是真文件（HTML/JSON 错误页拦截；zip 场景强制 PK 头）
         head = resp.read(4)
-        if head[:1] == b"<":
-            print(f"    [跳过] 返回的是 HTML 页面而非文件（可能镜像失效/路径错误）")
+        if head[:1] in (b"<", b"{"):
+            print(f"    [跳过] 返回的是 HTML/JSON 页面而非文件（可能镜像失效/路径错误）")
+            return False
+        if out_path.lower().endswith(".zip") and not looks_like_zip(head):
+            print(f"    [跳过] zip 响应缺少 PK 文件头（内容异常）")
             return False
         tmp_path = out_path + ".part"
         written = len(head)

@@ -20,8 +20,8 @@
 |---|---|---|
 | `provider_settings.wake_prefix` | `""` | ⚙️ 群聊唤醒前缀（如 `"$bot"`）；空=不要求前缀，靠 @ 或插件概率触发 |
 | `platform_settings.friend_message_needs_wake_prefix` | `false` | 🔧 私聊是否要求唤醒前缀。**必须 false**，否则私聊装死（pitfalls D1） |
-| `platform_settings.reply_with_mention` | `false` | 🔧 每条回复都 @ 提问者。保持 false——@ 行为由概率插件接管 |
-| `platform_settings.reply_with_quote` | `false` | 🔧 每条回复都引用原消息。同上保持 false |
+| `platform_settings.reply_with_mention` | `false` | 🔧 每条回复都 @ 提问者。默认 false=纯文本回复（预期行为，不是故障）；想概率性 @ 需自装装饰插件，见 pitfalls D8 |
+| `platform_settings.reply_with_quote` | `false` | 🔧 每条回复都引用原消息。默认 false=纯文本回复，同上 |
 | `platform_settings.segmented_reply.enable` | `true` | 🔧 分段回复（像真人连发多条）。关掉则整段发送、无空行（pitfalls D3） |
 | `platform_settings.segmented_reply.interval` | `"1.5,3.5"` | ⚙️ 分段间隔随机区间（秒），调小回复更急促、调大更从容 |
 | `platform_settings.segmented_reply.words_count_threshold` | `150` | ⚙️ 超过该字数不拆分（长文整段发） |
