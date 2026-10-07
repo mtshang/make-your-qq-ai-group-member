@@ -45,7 +45,7 @@ QQ 好友/群聊
 1. **不许静默失败**：重试失败、下载失败、命令卡死，都不能自己吞掉或无上限重试。最多自动重试 2 次，仍失败就停下向用户报告。
 2. **每条消息带行动项**：告诉用户现状（一句话）之后，必须给出具体的下一步，例如：
    - 「凭据授权窗口弹在你屏幕上了，请完成 GitHub 登录后回复我"好了"」
-   - 「NapCat 安装器需要你点击，装完后告诉我」
+   - 「NapCat 安装器窗口弹出来了，它启动后自动安装，你不用点任何东西；卡住或报错告诉我」
    - 「扫码窗口出现了，请用**小号**扫码，扫完说一声」
    - 「这一步我自己修不了，需要你把 AstrBot 窗口最后 20 行日志发给我」
 3. **自己修好的也要报备**：自动重试成功、自动修正了路径之类，补一句「刚才 X 失败，已自动 Y，你无需操作」——保持信息透明，不许装作没发生。
@@ -55,7 +55,7 @@ QQ 好友/群聊
    - **判读结果优先读这个文件**（文件读写对所有 agent 都可靠），读终端回显/扫日志只作兜底——GUI 型 agent 读屏易错，命令式 agent 也省得翻历史输出；
    - 中断恢复时**先读它**：progress 里第一个非 `done` 的 Phase 就是断点，从那里继续，已完成步骤不要重做。
 6. **窗口管理透明化**：每开一个新的终端窗口 / 安装器 / 扫码窗口，必须**同时**告诉用户三件事——这是什么窗口、要**保留**还是**可以关**、用户需要**看什么或做什么**。示例话术：
-   - 「NapCat 安装器窗口弹出来了，请点击安装；装完（napcat 目录出现 NapCat.数字.Shell 文件夹）回我"装好了"，窗口关掉没关系」
+   - 「NapCat 安装器窗口弹出来了，**启动即自动安装 QQ 内核，全程无需你操作**；窗口保留别关（关窗=中断安装），装完我自动检测到并继续」
    - 「扫码窗口出现了，请用**小号**扫码；**登录成功前千万别关**这个窗口」
    - 「AstrBot 服务窗口已开并在滚日志，保留别动，你不用操作」
    不许默默开窗口，也不许默默关窗口。全程窗口处置对照见「终端窗口一览」表。
@@ -253,7 +253,7 @@ python <skill目录>\scripts\download.py https://github.com/Him666233/astrbot_pl
 | agent 的命令窗口 | 全程 | agent | 用户无需理会 |
 | AstrBot 服务窗口（标题 `qqaibot-AstrBot`） | Phase 5 两次启动、验收期 | agent 拉起 | **保留**（服务本体）：「AstrBot 窗口已开并在滚日志，保留别动，你不用操作」 |
 | AstrBot 窗口（stop 后残留） | Phase 5 写库/改配置前 | agent | 服务被 stop 后窗口停在"请按任意键继续"——**属正常残留**，用户随手关掉即可，agent 不必处理 |
-| NapCat 安装器窗口 | Phase 6 步骤 2 | **用户** | **用户点安装**；装完回"装好了"；**窗口可关** |
+| NapCat 安装器窗口 | Phase 6 步骤 2 | agent 拉起 | **启动即自动安装，用户无需点任何东西**；**窗口保留等装完**（关窗=中断安装进程）；agent 自己轮询 `NapCat.*.Shell` 目录出现 + 安装器进程退出 = 装完，不等用户回报 |
 | NapCat 扫码窗口 | Phase 6 步骤 3 | **用户** | **用小号扫码**；**登录成功前千万别关**；成功后窗口保留（协议端服务本体） |
 | NapCat 常驻窗口（标题 `qqaibot-NapCat`） | Phase 6 步骤 5 重启后 | agent 拉起 | **保留**（协议端服务本体） |
 | bot 的 QQ 客户端窗口（标题 `qqaibot-QQ-<QQ号>`） | NapCat 启动登录后 | 自动改名 | **保留**。启动时后台自动改名（防与主号 QQ 混淆，尽力而为——QQ 可能自己改回标题，改名失败不影响功能）；`kill_napcat` 会连这个窗口的进程一起定位杀掉 |
@@ -297,7 +297,7 @@ Set-Location '<INSTALL>'; python '<skill目录>\scripts\bot_manager.py' start
    ```
    解压到 `$INSTALL\napcat\`。
 
-2. **运行安装器**：启动 `$INSTALL\napcat\NapCatInstaller.exe`（GUI，需要用户配合点击），等待它下载 QQ 内核。失败 → pitfalls A2（重试/换网络）。
+2. **运行安装器（agent 自己启动，用户不用点任何东西）**：NapCatInstaller.exe **启动后自动下载并安装 QQ 内核（约 200MB，走腾讯 CDN，几分钟），全程无交互**。启动方式：**后台任务拉起**——GUI 安装器同样逃不掉沙箱回收，普通前台命令拉起后命令一结束安装进程就被收走（pitfalls B8，实测）；无后台任务能力按 B8 分层兜底。启动后**自己轮询** `$INSTALL\napcat` 下出现 `NapCat.*.Shell` 目录且安装器进程退出 = 装完（实测 Shell 目录名构建号随版本变，见下一步），**不要等用户回报**。卡住超 5 分钟/报错 → pitfalls A2（重试/换网络）。话术：「安装器窗口弹出来了，自动安装，你不用操作；卡住或报错告诉我」。
    **装完后必须实测 Shell 目录名，启动 NapCat 前再三强调**：安装器装出的运行目录形如 `NapCat.52230.Shell`，**中间的数字是构建号，每次安装可能不同——文档/示例里的 52230 只是本机样例，绝不许照抄**。列出实际目录：
    ```powershell
    Get-ChildItem $INSTALL\napcat -Directory -Filter "NapCat.*.Shell" | Select-Object -ExpandProperty FullName
@@ -432,6 +432,7 @@ python bot_manager.py kill_napcat    只杀 NapCat（含残留启动窗口）
 | WebUI 登不上 | pitfalls B6（密码机制） |
 | agent 卡在启动命令 | pitfalls B7（常驻进程） |
 | 窗口启动成功秒死/日志戛然而止 | pitfalls B8（沙箱回收服务窗口） |
+| taskkill /F 报参数错误（F:/ 字样） | pitfalls B9（Git Bash 路径转换） |
 | napcat.bat 报 Error Code 2 | pitfalls C1（bootmain 陷阱） |
 | NapCat 连不上 AstrBot | pitfalls C2（/ws 后缀） |
 | NapCat 启动终端不出二维码 | pitfalls C4（qrcode.png 兜底/重跑必出） |
