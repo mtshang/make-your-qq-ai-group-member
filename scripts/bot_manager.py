@@ -40,6 +40,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 CFG_NAMES = ("deploy_state.json", "bot_manager.json")
@@ -94,6 +95,34 @@ WS_PORT = "6199"     # AstrBot 反向 WS（NapCat 连这里）
 
 def log(msg):
     print(msg, flush=True)
+
+
+def run_ps_pids(ps_pipeline, tag):
+    """跑 PowerShell 查询返回 PID 列表，结果经临时文件中转。
+
+    部分 agent 沙箱会把 PowerShell 的 stdout 吞掉（实测），导致探测/清理
+    静默失效——status 假阴性、孤儿 cmd 壳窗口越积越多。把结果写进临时
+    文件再读回来，绕开 stdout 通道。
+    """
+    out_path = os.path.join(tempfile.gettempdir(), "qqaibot_ps_%s.txt" % tag)
+    full = "%s | Out-File -FilePath '%s' -Encoding utf8" % (ps_pipeline, out_path)
+    try:
+        subprocess.run(["powershell", "-NoProfile", "-Command", full],
+                       capture_output=True, text=True, errors="replace", timeout=25)
+    except Exception:
+        pass
+    pids = []
+    try:
+        # PS5.1 的 Out-File -Encoding utf8 带 BOM，utf-8-sig 兼容
+        with open(out_path, encoding="utf-8-sig") as f:
+            pids = [l.strip() for l in f if l.strip().isdigit()]
+    except OSError:
+        pass
+    try:
+        os.remove(out_path)
+    except OSError:
+        pass
+    return pids
 
 
 def load_config():
@@ -153,24 +182,70 @@ def pids_connected_to(port):
     return sorted(pids)
 
 
-def napcat_qq_pids(napcat_root):
-    """找命令行/可执行路径中含 napcat 安装目录的 QQ.exe（区别于用户主号 QQ）。"""
-    root = napcat_root.lower().rstrip("\\")
-    ps = (
-        "$root='%s';"
-        "Get-CimInstance Win32_Process -Filter \"Name='QQ.exe'\" | "
-        "Where-Object { ($_.CommandLine -and $_.CommandLine.ToLower().Contains($root)) "
-        "or ($_.ExecutablePath -and $_.ExecutablePath.ToLower().Contains($root)) } | "
-        "Select-Object -ExpandProperty ProcessId" % root.replace("'", "''")
-    )
-    try:
-        out = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", ps],
-            capture_output=True, text=True, errors="replace", timeout=20
-        ).stdout
-    except Exception:
+def qq_pids_by_image_path(napcat_root):
+    """纯标准库 ctypes 枚举进程映像路径找 bot QQ——不 spawn 任何子进程。
+
+    沙箱对 PowerShell 子进程的破坏形态多样（stdout 吞噬、命令行转义损坏导致
+    ParserError），PowerShell 路线在沙箱里不可靠；Windows API 直调无此依赖。
+    bot 的 QQ.exe 全部位于 NapCat.Shell 目录下，与主号（Program Files）路径
+    天然不同，exe 路径匹配足以唯一区分，无需读 CommandLine。
+    """
+    import ctypes
+    from ctypes import wintypes
+    root = (napcat_root or "").lower().rstrip("\\")
+    if not root:
         return []
-    return [l.strip() for l in out.splitlines() if l.strip().isdigit()]
+    k32 = ctypes.windll.kernel32
+    psapi = ctypes.windll.psapi
+    # 64 位下必须声明签名：默认 int 返回值会截断 HANDLE 导致后续 API 全失败
+    psapi.EnumProcesses.restype = wintypes.BOOL
+    psapi.EnumProcesses.argtypes = [ctypes.POINTER(wintypes.DWORD),
+                                    wintypes.DWORD, ctypes.POINTER(wintypes.DWORD)]
+    k32.OpenProcess.restype = wintypes.HANDLE
+    k32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+    k32.QueryFullProcessImageNameW.restype = wintypes.BOOL
+    k32.QueryFullProcessImageNameW.argtypes = [wintypes.HANDLE, wintypes.DWORD,
+                                               wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)]
+    k32.CloseHandle.argtypes = [wintypes.HANDLE]
+    PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+    arr = (wintypes.DWORD * 8192)()
+    cb = wintypes.DWORD(ctypes.sizeof(arr))
+    pids = []
+    if not psapi.EnumProcesses(ctypes.cast(arr, ctypes.POINTER(wintypes.DWORD)),
+                               cb, ctypes.byref(cb)):
+        return []
+    for pid in arr:
+        if not pid:
+            continue
+        h = k32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if not h:
+            continue
+        try:
+            buf = ctypes.create_unicode_buffer(1024)
+            size = wintypes.DWORD(1024)
+            if k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(size)):
+                if root in buf.value.lower():
+                    pids.append(str(pid))
+        finally:
+            k32.CloseHandle(h)
+    return pids
+
+
+def napcat_qq_pids(napcat_root):
+    """找 bot 的 QQ.exe：exe 路径含 napcat 安装目录（与主号 Program Files 天然不同）。
+
+    主力 ctypes 直调 Windows API（不 spawn 子进程，沙箱免疫）；
+    PowerShell 单语句查询降为并集补充（无沙箱环境两者结果一致）。
+    """
+    root = (napcat_root or "").lower().rstrip("\\")
+    if not root:
+        return []
+    result = set(qq_pids_by_image_path(root))
+    ps = ("Get-CimInstance Win32_Process -Filter \"Name='QQ.exe'\" | "
+          "Where-Object { $_.ExecutablePath -and $_.ExecutablePath.ToLower().Contains('%s') } | "
+          "Select-Object -ExpandProperty ProcessId" % root.replace("'", "''"))
+    result |= set(run_ps_pids(ps, "qq"))
+    return sorted(result)
 
 
 def bat_window_pids(where):
@@ -180,14 +255,7 @@ def bat_window_pids(where):
     """
     ps = ("Get-CimInstance Win32_Process -Filter \"Name='cmd.exe'\" | "
           "Where-Object { %s } | Select-Object -ExpandProperty ProcessId" % where)
-    try:
-        out = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", ps],
-            capture_output=True, text=True, errors="replace", timeout=20
-        ).stdout
-    except Exception:
-        return []
-    return [l.strip() for l in out.splitlines() if l.strip().isdigit()]
+    return run_ps_pids(ps, "batwin")
 
 
 def kill_tree(pid):
@@ -342,14 +410,7 @@ def qq_pids_by_title():
     ps = ("Get-Process -Name QQ -ErrorAction SilentlyContinue | "
           "Where-Object { $_.MainWindowTitle -like 'qqaibot-*' } | "
           "Select-Object -ExpandProperty Id")
-    try:
-        out = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", ps],
-            capture_output=True, text=True, errors="replace", timeout=20
-        ).stdout
-    except Exception:
-        return []
-    return [l.strip() for l in out.splitlines() if l.strip().isdigit()]
+    return run_ps_pids(ps, "qqtitle")
 
 
 def cmd_kill_napcat(cfg, base=None):

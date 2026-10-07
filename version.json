@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.3.7",
+  "version": "1.3.8",
   "updated": "2026-10-08",
-  "notes": "NapCat 日志配置有两份（全局 napcat.json + 账号级 napcat_<QQ>.json），fileLog 两份都要开（只改账号级则 quick 免扫码阶段无日志，实测）；bot QQ 常为后台进程无窗口（路径杀标准）；日志判读一览；扫码交还控制权；A2 Plan B 组装闭环；29 条踩坑"
+  "notes": "bot_manager QQ 定位改 ctypes 直调 Windows API（沙箱免疫：stdout 吞噬+命令行转义损坏 ParserError 两种形态都绕开）；保活 vs 启动器竞态（先暂停保活再 start）；日志判读（NapCat 双配置 fileLog）；扫码交还控制权；A2 Plan B 组装闭环；29 条踩坑"
 }

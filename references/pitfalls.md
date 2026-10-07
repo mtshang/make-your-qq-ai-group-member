@@ -141,8 +141,9 @@
 - **判别**：窗口秒死 + 日志戛然而止 = 沙箱回收；窗口秒死 + 有报错闪过 = 启动错误，把输出重定向到文件排查（bat 里加 `>> run.log 2>&1`）。
 - **⚠ 保活任务的交付后清理（实测踩坑）**：保活任务的实现是"进程死了就重新拉起"的循环——**agent 交付完成后必须主动停掉它**，否则用户跑 `bot_manager start` 时：start 杀掉的实例被保活再次拉起（带着新 PID 复活，实测杀 6464 → 复活成 41956），与用户实例叠加 → 同号互踢（C5）复发。用户侧判别：明明杀干净了/刚跑完 start，窗口数量却不对、或有窗口在输出别人实例的日志。**交付清单必须含"停保活"这一项**。
 - **保活实例双开（实测）**：被安全策略拦掉的命令可能**延迟执行**——同一个保活脚本意外起了 2 个实例（相隔 22 秒、PID 不同），双开 = 双重拉起 = 互踢前兆。**上保活前先查有无旧保活实例**；发现双开杀新留旧（旧实例拉起的服务进程树不能动）。
+- **保活 vs 启动器竞态（实测：双 AstrBot 窗口 + 尸体窗口）**：部署期 AstrBot 由保活循环（每 5 秒探 6185，端口没了就拉起）守着时，重启必须**先暂停保活 → start → 端口起来后再恢复**：`touch .ka_pause` → `bot_manager start` → 确认端口监听 → `rm .ka_pause`。顺序写反（先 `rm` 再 start）= start 先杀旧实例造成端口 ~25 秒空窗 → 保活在下一轮轮询里看到"端口没了"自己也拉起一个 → **两个窗口赛跑抢 6185，输的绑定失败崩掉，bat 末尾的 pause 让尸体窗口停在桌面**。判别：保活日志出现"未监听→重新拉起"的时间点与你的 start 重叠。自己写保活循环时**必须支持暂停标志文件**。
 - **附**（实测踩坑）：`cmd /c start` 的第一个参数**必须带引号才被当窗口标题**，裸写 `start AstrBot xxx.bat` 会把 AstrBot 当程序名去找（"系统找不到文件 AstrBot"）；经 Python subprocess 传参时引号标题又会被二次转义搞坏——bot_manager 已用空标题 `start ""` 规避，自己写类似脚本时留意。
-- **连带坑（status 假阴性）**：同一沙箱策略会让基于 PowerShell 的进程探测失灵——`status` 可能误报 NapCat STOPPED 而服务实际活着（实测：沙箱里报 STOPPED，netstat 显示 6199 双向 ESTABLISHED）。bot_manager 已内置 WS 连接兜底判定；自己排查时用 `netstat -ano | findstr :6199` 交叉验证，**别被假阴性骗去重复启动**（重复启动 → 同号互踢 C5）。
+- **连带坑（PowerShell 探测/清理失灵，形态比想象深）**：同一沙箱策略会让基于 PowerShell 的进程探测失效——`status` 误报 NapCat STOPPED 而服务实际活着（实测：netstat 显示 6199 双向 ESTABLISHED），残留 bat 窗口清理静默失效（孤儿窗口积累）。实测**两种形态**：① stdout 被吞——结果写临时文件（`... | Out-File $env:TEMP\x.txt`）再读文件可绕过；② **命令行转义被沙箱包装层损坏 → 含 `$var='...';` 分号多语句或 `or` 脚本块的复杂管道直接 ParserError（rc=1），文件中转也救不了，只有"单语句无变量"的简单管道稳定可用**。**根治：bot_manager 的 QQ 进程定位已改为 ctypes 直调 Windows API（EnumProcesses + QueryFullProcessImageNameW，纯标准库零子进程，沙箱免疫）**；自己写探测时优先 ctypes，PowerShell 只做补充。判别口诀：`netstat -ano | findstr :6199` 有 ESTABLISHED 就是活的，**别被假阴性骗去重复启动**（重复启动 → 同号互踢 C5）。
 
 ### B9. Git Bash 把 taskkill 的 /F 转义成路径（MSYS 路径转换）
 - **症状**：Git Bash 里 `taskkill /F /PID 1234` 报参数错误——`/F` 被 MSYS 自动转换成了 `F:/`（看着像盘符）。
