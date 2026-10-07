@@ -373,10 +373,14 @@ Set-Location '<INSTALL>'; python '<skill目录>\scripts\bot_manager.py' start
    d["network"]["websocketClients"] = src["network"]["websocketClients"]
    io.open(p, "w", encoding="utf-8").write(json.dumps(d, ensure_ascii=False, indent=2))
 
-   q = r"<config目录>\napcat_<QQ>.json"       # 同目录
-   n = json.load(io.open(q, encoding="utf-8-sig"))
-   n["fileLog"] = True                        # 日志落 <shell_dir>\log\，排障首选读文件
-   io.open(q, "w", encoding="utf-8").write(json.dumps(n, ensure_ascii=False, indent=2))
+   # NapCat 日志配置有两份：napcat.json（全局，未登录/quick 免扫码阶段用）+
+   # napcat_<QQ>.json（账号级，登录会话用）——只改账号级，登录前的阶段永远读不到
+   # 日志开关（实测教训）。用通配把两份全开：
+   import glob
+   for q in glob.glob(r"<config目录>\napcat*.json"):
+       n = json.load(io.open(q, encoding="utf-8-sig"))
+       n["fileLog"] = True                    # 日志落 <shell_dir>\log\，排障首选读文件
+       io.open(q, "w", encoding="utf-8").write(json.dumps(n, ensure_ascii=False, indent=2))
    ```
    然后重启 NapCat：`python <skill目录>\scripts\bot_manager.py start`（自带先杀后启，内部走 quick.bat 免扫码）——**不要手动跑 napcat.quick.bat**。
    备选：也可在 NapCat WebUI「网络配置」页手动加反向 WS（`ws://127.0.0.1:6199/ws`），效果相同。
