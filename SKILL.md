@@ -297,6 +297,7 @@ python <skill目录>\scripts\bot_manager.py start
    NapCat.*.Shell\versions\*\resources\app\napcat\config\
    ```
    下生成 `onebot11_<QQ号>.json` / `napcat_<QQ号>.json`——从文件名直接读出 QQ 号（记为 `$QQ`）。**立刻写进 deploy_state.json**：`qq` 填号、`napcat_shell_dir`/`napcat_root` 填实际路径。
+   **读号后立刻改 `napcat.quick.bat` 的占位账号**：OneKey 硬编码 `-q 10086`，把占位号替换为 `$QQ`（Python/编辑器均可）——不改则交付后用户每次重启都要重新扫码（pitfalls C7）。
 
 5. **注入反连配置**：NapCat 生成的配置里没有反向 WS 设置。用脚本把模板的 `network.websocketClients` 合并进生成的 `onebot11_$QQ.json`（其余字段保持原样）：
    ```python
@@ -364,7 +365,7 @@ python bot_manager.py status   只读探测两服务状态
 ```
 
 1. **补全配置**：`$INSTALL\deploy_state.json` 在 Phase 3 已创建，把两个空字段填上：`napcat_shell_dir` → Phase 6 装出的实际目录（如 `D:\qqaibot\napcat\NapCat.52230.Shell`）；`napcat_root` → `$INSTALL\napcat`。同时把 `qq` 字段填上（Phase 6 已读到）。填完 `status` 应能探测 NapCat（STOPPED 属正常）。
-2. **验证**：先跑 `status`（应全部 STOPPED）→ `start`（两个新窗口弹出，status 变 RUNNING，AstrBot 窗口能看到启动日志）→ `stop`（恢复 STOPPED）。**stop 会真杀进程，只能在部署完成、确认无其他业务共用时执行**。
+2. **验证**：先跑 `status` 看状态——AstrBot 应 STOPPED；**NapCat 若仍是 RUNNING（Phase 6 留下的登录态）不要硬 stop**（杀登录实例 = 重新扫码，pitfalls C5/C6），`start` 会自动跳过在跑的、只补起 AstrBot。确认 AstrBot 正常后可再 `stop` → `start` 完整走一遍（此时 quick.bat 已是真实 QQ，NapCat 免扫码重启）。**stop 会真杀进程，只能在部署完成、确认无其他业务共用时执行**。
 3. **交付话术**：日常开机用 `start`，关机/维护用 `stop`；**首次扫码和调试仍按 Phase 5/6 原方式**（napcat.bat 扫码需要 NapCat 自己的窗口交互）。
 
 > 设计边界：刻意不做"单窗口聚合两进程日志"——NapCat 首次登录要交互、两进程输出编码不同、Windows 下 Ctrl+C 信号转发不可靠。独立窗口 + 一键启停是可靠性最优解。
@@ -391,6 +392,10 @@ python bot_manager.py status   只读探测两服务状态
 | 窗口启动成功秒死/日志戛然而止 | pitfalls B8（沙箱回收服务窗口） |
 | napcat.bat 报 Error Code 2 | pitfalls C1（bootmain 陷阱） |
 | NapCat 连不上 AstrBot | pitfalls C2（/ws 后缀） |
+| NapCat 启动终端不出二维码 | pitfalls C4（qrcode.png 兜底/重跑必出） |
+| bot 掉线且开过多个实例 | pitfalls C5（同号互踢连锁） |
+| 杀进程误伤别的窗口 | pitfalls C6（禁按窗口标题杀） |
+| 每次重启都要重新扫码 | pitfalls C7（quick.bat 占位号没改） |
 | 私聊没反应 | pitfalls D1 |
 | /help 不触发 | pitfalls D2 |
 | 回复有空行 | pitfalls D3 |

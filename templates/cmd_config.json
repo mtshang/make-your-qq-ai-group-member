@@ -326,7 +326,7 @@
     "/"
   ],
   "log_level": "INFO",
-  "log_file_enable": false,
+  "log_file_enable": true,
   "log_file_path": "logs/astrbot.log",
   "log_file_max_mb": 20,
   "temp_dir_max_size": 1024,

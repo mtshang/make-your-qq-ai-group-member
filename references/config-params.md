@@ -31,6 +31,7 @@
 | `platform[0].ws_reverse_host` | `127.0.0.1` | ⚙️ 反向 WS 监听地址。默认仅本机（NapCat 同机部署够用，且不触发防火墙弹窗）；NapCat 装到别的机器才改 `0.0.0.0` |
 | `platform[0].ws_reverse_port` | `6199` | ⚙️ 反向 WS 监听端口。**改了必须同步改 NapCat 侧 URL**（`ws://127.0.0.1:端口/ws`） |
 | `log_level` | `INFO` | ⚙️ 排查问题时可改 `DEBUG`，平时别开（日志量巨大） |
+| `log_file_enable` | `true` | ⚙️ 文件日志开关（落 `data\logs\astrbot.log`，20MB 滚动）。默认开——**窗口滚动 + 文件日志双通道**，排障优先读文件；嫌磁盘占用可关（此时只剩窗口滚动） |
 | `timezone` | `Asia/Shanghai` | ⚙️ 影响时段概率计算，一般不动 |
 
 ### 1.3 LLM 相关
