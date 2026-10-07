@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+
+# 下载残留
+*.part
+
+# 本地部署产物（不应出现在仓库里）
+*.bak
+data_v4.db*
+logs/

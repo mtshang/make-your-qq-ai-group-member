@@ -1,0 +1,33 @@
+{
+  "network": {
+    "httpServers": [],
+    "httpSseServers": [],
+    "httpClients": [],
+    "websocketServers": [],
+    "websocketClients": [
+      {
+        "enable": true,
+        "name": "AstrBot",
+        "url": "ws://127.0.0.1:6199/ws",
+        "reportSelfMessage": false,
+        "messagePostFormat": "array",
+        "token": "",
+        "debug": false,
+        "heartInterval": 5000,
+        "reconnectInterval": 5000,
+        "verifyCertificate": true
+      }
+    ],
+    "plugins": []
+  },
+  "musicSignUrl": "",
+  "enableLocalFile2Url": false,
+  "parseMultMsg": false,
+  "imageDownloadProxy": "",
+  "timeout": {
+    "baseTimeout": 10000,
+    "uploadSpeedKBps": 256,
+    "downloadSpeedKBps": 256,
+    "maxTimeout": 1800000
+  }
+}
