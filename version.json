@@ -1,0 +1,7 @@
+{
+  "name": "make-your-qq-ai-group-member",
+  "repo": "mtshang/make-your-qq-ai-group-member",
+  "version": "1.3.0",
+  "updated": "2026-10-07",
+  "notes": "bot_manager 全程骨架（scan 子命令/运行时副本/相对路径双击入口/WS 连接兜底修 status 假阴性）；Shell 目录构建号实测回填；NapCat 安装器无人值守自动安装；B8 无后台任务分层兜底；AstrBot 对等禁令；29 条踩坑"
+}

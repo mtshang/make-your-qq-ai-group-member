@@ -49,6 +49,7 @@ QQ 好友/群聊
 ```
 make-your-qq-ai-group-member/
 ├── SKILL.md                  # Agent 执行的主流程（Phase 0-8 全流程 + 验收清单 + 交付话术）
+├── version.json              # skill 版本号（开工时 agent 与 GitHub 远端比对，有新版自动拉取）
 ├── references/
 │   ├── pitfalls.md           # 29 条真实踩坑记录（出问题先查它）
 │   ├── config-params.md      # 全部配置参数说明（想调"话多话少"看这个）
