@@ -60,7 +60,7 @@ QQ 好友/群聊
 1. 打开 https://platform.deepseek.com/usage 注册/登录（手机号即可）
 2. 左侧菜单「API keys」→「创建 API key」→ 复制保存（**密钥只显示这一次**，关掉就看不到了）
 3. 左侧「充值」→ 充值金额（最低档即可，10 元能用很久，量入充值）
-4. 把 sk- 开头的 key 交给 agent 填入配置
+4. 把创建好的 key 完整复制交给 agent 填入配置（前缀因服务商而异，如 sk- / sk-or- / AIza- 等）
 
 **⚠️ 视觉模型兼容性**：模板预置了双模型（文本 + 视觉识图），其中**识图依赖视觉模型**（DeepSeek 的 `deepseek-v4-flash-vision-exp`）。如果用户提供的 API **不支持 vision 模型**，必须把识图功能关闭：插件配置 `astrbot_plugin_group_chat_plus_config.json` 中 `enable_image_processing` 改为 `false`（可顺手把 cmd_config 里的 vision provider 删掉或 `enable: false`），否则群里发图会报错。
 
@@ -81,9 +81,13 @@ GitHub 下载脚本已内置镜像轮换，**不需要代理**；DeepSeek API �
 
 | 变量 | 说明 | 代入处 |
 |---|---|---|
-| `$QQ` | 用作 bot 的 QQ 号 | NapCat 配置文件名、cmd_config.json 管理员 |
 | `$KEY` | 聊天模型 API key（任何 OpenAI 兼容 API，推荐 DeepSeek，见上节） | cmd_config.json |
 | `$INSTALL` | 安装根目录 | 一切下载与安装的根。**默认 `D:\qqaibot`**（无 D 盘用 `C:\qqaibot`）；问用户时直接给这个默认值，用户没意见就用。路径不要含中文和空格 |
+
+**bot 的 QQ 号不收集**——NapCat 扫码登录后从它生成的配置文件名里读实际登录号（Phase 6 步骤 4），杜绝填错号/文件名对不上的问题。管理员（admins_id）届时回填。
+
+**但 QQ 小号本身要在开工前确认**——明确问用户："用作 bot 的 QQ 小号准备好了吗？"并讲清危害：
+> NapCat 是第三方协议端，模拟 QQ 客户端行为，**账号存在被风控/冻结/封禁的风险**。大号里绑着支付、社交关系、游戏资产，被封的损失不可逆；小号被封只是换个号重来。所以**必须用小号**，且最好是注册过一段时间、有过正常使用的号（全新号风控概率更高）。
 
 代理端口顺带问一句（可选，见「代理检测」节）。
 
@@ -96,8 +100,8 @@ GitHub 下载脚本已内置镜像轮换，**不需要代理**；DeepSeek API �
 ```
 | 确认项 | 值 |
 |---|---|
-| bot QQ 号 | <填入> |
-| API key | sk-****<尾 4 位>（已隐藏中间部分） |
+| bot QQ 小号 | 已准备 ✓（已知悉风控风险，不用大号） |
+| API key | ****<尾 4 位>（已隐藏，前缀因服务商而异） |
 | 安装目录 | <填入>（默认 D:\qqaibot） |
 | 代理 | 无 / 127.0.0.1:<端口>（备用） |
 ```
@@ -161,9 +165,9 @@ astrbot init -y
 
 | 模板 | 铺到 | 待替换 |
 |---|---|---|
-| `cmd_config.json` | `$INSTALL\astrbot\data\cmd_config.json`（覆盖 init 生成的） | `<YOUR_API_KEY>` → `$KEY`；`<YOUR_QQ_NUMBER>` → `$QQ` |
+| `cmd_config.json` | `$INSTALL\astrbot\data\cmd_config.json`（覆盖 init 生成的） | `<YOUR_API_KEY>` → `$KEY`；`<YOUR_QQ_NUMBER>` **此时不填**，Phase 6 扫码后回填 |
 | `astrbot_plugin_group_chat_plus_config.json` | `$INSTALL\astrbot\data\config\astrbot_plugin_group_chat_plus_config.json`（目录不存在则创建） | 无占位符 |
-| `napcat_onebot11.json` | Phase 6 再铺（NapCat 装完后） | 文件名加 QQ 号 |
+| `napcat_onebot11.json` | Phase 6 登录后作注入源（合并进 NapCat 生成的配置） | 无需改 |
 
 **替换脚本**（保持 BOM 编码， pitfalls B2）：
 
@@ -234,18 +238,31 @@ astrbot run
 
 2. **运行安装器**：启动 `$INSTALL\napcat\NapCatInstaller.exe`（GUI，需要用户配合点击），等待它下载 QQ 内核。失败 → pitfalls A2（重试/换网络）。装完目录里出现 `NapCat.*.Shell\`。
 
-3. **铺反连配置**（登录前做，pitfalls C3）：
-   把 `templates\napcat_onebot11.json` 复制为：
-   ```
-   $INSTALL\napcat\NapCat.*.Shell\versions\*\resources\app\napcat\config\onebot11_$QQ.json
-   ```
-   （版本号目录用通配定位，**不要写死**；文件名必须带 QQ 号。）
-
-4. **启动并扫码**：进 `NapCat.*.Shell\` 目录跑 `napcat.bat`。
+3. **启动并扫码**：进 `NapCat.*.Shell\` 目录跑 `napcat.bat`。
    - ⚠ **绝对不要用 `bootmain\` 里的同名 bat**（pitfalls C1，Error Code 2 元凶）。
-   - 出二维码后让用户用**手机 QQ（bot 小号）**扫码登录。
+   - 出二维码后让用户用**手机 QQ（bot 小号）**扫码登录——**扫码前再问一遍确认是小号**，扫错成大号就立刻下线重扫。
 
-5. **验证打通**：
+4. **读取实际 QQ 号**（不问用户，扫码自动获得）：登录成功后 NapCat 会在
+   ```
+   NapCat.*.Shell\versions\*\resources\app\napcat\config\
+   ```
+   下生成 `onebot11_<QQ号>.json` / `napcat_<QQ号>.json`——从文件名直接读出 QQ 号（记为 `$QQ`）。
+
+5. **注入反连配置**：NapCat 生成的配置里没有反向 WS 设置。用脚本把模板的 `network.websocketClients` 合并进生成的 `onebot11_$QQ.json`（其余字段保持原样）：
+   ```python
+   import json, io
+   src = json.load(io.open(r"<skill目录>\templates\napcat_onebot11.json", encoding="utf-8-sig"))
+   p = r"<config目录>\onebot11_<QQ>.json"     # 从步骤 4 的文件名来
+   d = json.load(io.open(p, encoding="utf-8-sig"))
+   d["network"]["websocketClients"] = src["network"]["websocketClients"]
+   io.open(p, "w", encoding="utf-8").write(json.dumps(d, ensure_ascii=False, indent=2))
+   ```
+   然后重启 NapCat：关掉旧窗口，重新跑 `napcat.quick.bat`（已登录免扫码）。
+   备选：也可在 NapCat WebUI「网络配置」页手动加反向 WS（`ws://127.0.0.1:6199/ws`），效果相同。
+
+6. **回填管理员**：把 `$INSTALL\astrbot\data\cmd_config.json` 的 `<YOUR_QQ_NUMBER>` 替换为 `$QQ`（Python 脚本，utf-8-sig），**重启 AstrBot**（bot_manager stop/start 或手动）。
+
+7. **验证打通**：
    - NapCat 窗口显示登录成功；
    - AstrBot 日志出现 WebSocket 连接成功行（ NapCat → `ws://127.0.0.1:6199/ws`，必须带 `/ws`，pitfalls C2）；
    - `verify.py port 6199` 在 AstrBot 侧监听中；

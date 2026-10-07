@@ -12,7 +12,7 @@
 | 参数 | 当前值 | 说明 |
 |---|---|---|
 | `provider_sources[0].key` | `<YOUR_API_KEY>` | 🔧 DeepSeek API key，数组形式 |
-| `admins_id` | `<YOUR_QQ_NUMBER>` | 🔧 管理员 QQ 号列表（bot 的主人，可放行指令/收通知） |
+| `admins_id` | `<YOUR_QQ_NUMBER>` | 🔧 管理员 QQ 号（bot 小号自身）。**Phase 6 扫码登录后从 NapCat 生成的文件名读号回填**（SKILL.md Phase 6 步骤 6），改完重启 AstrBot |
 
 ### 1.2 常改项
 

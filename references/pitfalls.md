@@ -134,9 +134,10 @@
 - **正确值**（模板已写好）：`ws://127.0.0.1:6199/ws`。
 - **验收**：AstrBot 日志出现 WebSocket 连接成功相关行；WebUI「平台适配器」里消息平台在线。
 
-### C3. onebot11 配置文件名必须带 QQ 号
-- **规则**：文件名是 `onebot11_<QQ号>.json`，NapCat 按"协议端登录的 QQ 号"找配置。模板内容不含 QQ 号，部署时复制为 `onebot11_<你的QQ号>.json`。
-- **时机**：首次扫码登录**之前**放好，登录后直接生效，省得登录完再改再重启。
+### C3. onebot11 配置文件名必须带 QQ 号（登录后才拿得到）
+- **规则**：NapCat 按"协议端登录的 QQ 号"找配置，文件名是 `onebot11_<QQ号>.json`。
+- **正确姿势**：QQ 号**不用提前问用户**——首次扫码登录成功后，NapCat 会在 `NapCat.*.Shell\versions\*\resources\app\napcat\config\` 下生成 `onebot11_<QQ>.json` / `napcat_<QQ>.json`，从文件名读号，再把模板的 `network.websocketClients` 合并进生成的文件，重启 NapCat（`napcat.quick.bat`）生效。
+- **症状**：登录成功但 AstrBot 没收到连接 → 八成是生成的配置没注入反连设置，或注入后没重启 NapCat。
 
 ---
 
