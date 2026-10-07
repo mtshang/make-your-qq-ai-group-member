@@ -66,7 +66,6 @@
       "model": "deepseek-flash",
       "modalities": [
         "text",
-        "image",
         "tool_use"
       ],
       "custom_extra_body": {},
@@ -88,7 +87,7 @@
   ],
   "provider_settings": {
     "enable": true,
-    "default_image_caption_provider_id": "deepseek/deepseek-flash",
+    "default_image_caption_provider_id": "deepseek/deepseek-vision",
     "image_caption_prompt": "Please describe the image using Chinese.",
     "provider_pool": [
       "*"

@@ -38,12 +38,12 @@
 | 参数 | 当前值 | 说明 |
 |---|---|---|
 | `provider_sources[0].api_base` | `https://api.deepseek.com` | ⚙️ API 地址，换其他 OpenAI 兼容服务商时改这里+model |
-| `provider[0].model` | `deepseek-flash` | ⚙️ 主对话模型（文本+工具）。低成本快速 |
+| `provider[0].model` | `deepseek-flash` | ⚙️ 主对话模型（文本+工具），**不声明 image**（收图会 400，图片由 caption/vision 链路处理）。模型名以部署时 DeepSeek 官方文档为准 |
 | `provider[1].model` | `deepseek-v4-flash-vision-exp` | ⚙️ 视觉模型，**只有它能收图**（pitfalls D5） |
-| `provider_settings.default_image_caption_provider_id` | `deepseek/deepseek-flash` | ⚙️ AstrBot 自带图片描述 provider；插件读空气的识图走插件配置里的 provider（见 §2.3），两套互不干扰 |
+| `provider_settings.default_image_caption_provider_id` | `deepseek/deepseek-vision` | ⚙️ AstrBot 原生链路的图片转述模型（引用带图等场景），**必须指向能收图的 vision provider** |
 | `agent_runner.config.model.provider_id` | `deepseek/deepseek-flash` | 🚫 agent 运行器主模型，与主对话模型保持一致即可 |
 | `agent_runner.config.persona.persona_id` | `大肥鱼DeepSeek` | 🚫 默认人格绑定，**必须与 personas 表里的 persona_id 逐字符一致**（pitfalls B5） |
-| `provider_settings.max_context_tokens` | `1000000` | 🚫 模型上下文上限，DeepSeek 支持百万级，不动 |
+| `provider[n].max_context_tokens` | `1000000` | 🚫 模型上下文上限（在 `provider[]` 各项里，不在 provider_settings 下），DeepSeek 支持百万级，不动 |
 | `provider_settings.streaming_response` | `false` | ⚙️ 流式输出。QQ 场景意义不大（分段回复代替），保持关闭 |
 | `provider_settings.datetime_system_prompt` | `true` | 🚫 注入当前时间，时段概率依赖它，别关 |
 | `pypi_index_url` | `https://mirrors.aliyun.com/pypi/simple/` | 🚫 插件依赖安装源，国内镜像加速，别动 |
@@ -120,7 +120,7 @@
 
 | 参数 | 当前值 | 说明 |
 |---|---|---|
-| `decision_ai_provider_id` | `""` | ⚙️ 空=用默认 provider；想用便宜小模型决策时填如 `deepseek/deepseek-flash` |
+| `decision_ai_provider_id` | `""` | ⚙️ 空=用默认对话模型做决策；想给决策单独配更便宜的模型时填一个真实存在的 provider_id（注意别填收不了图的） |
 | `enable_decision_ai_reasoning` | `false` | 🔧 **默认已关**（省 token 大头）。开启后每条过筛消息都输出推理块，质量更高但费 token；排查决策质量时临时开 |
 | `decision_ai_reasoning_log` | `false` | ⚙️ 决策推理写日志，与上项同步开关 |
 | `decision_ai_timeout` | `30` | 🚫 决策超时 |

@@ -180,3 +180,9 @@
 ### D8. 概率性 @ 和引用不生效 / 每次都 @
 - **原因**：AstrBot 主配置 `reply_with_mention` / `reply_with_quote` 是**无条件装饰**（开启则 100% @ 或引用）。
 - **当前方案**：主配置里两项为 `false`，由自研概率插件（`astrbot_plugin_prob_mention`，若部署）在装饰钩子里按概率决定。排查顺序：先确认主配置两项为 false，再查插件是否加载。
+
+### D9. 空白名单"放行"是上游行为，不是配置约定
+- **依赖**：模板里 `platform_settings.enable_id_white_list: true` 且 `id_whitelist: []`，依赖 AstrBot 白名单校验"空名单=放行"的源码行为（`whitelist_check/stage.py`，当前版本已实证）。
+- **风险**：上游若把语义改成"空名单=全拦"，部署完机器人会全员沉默（群里私聊都没反应）。
+- **症状**：升级 AstrBot 后所有消息无响应，日志停在白名单检查阶段。
+- **解决**：先查 `id_whitelist` 是否仍为空 + 语义是否反转；稳妥做法是把你的账号填进 `id_whitelist` 或直接 `enable_id_white_list: false`。

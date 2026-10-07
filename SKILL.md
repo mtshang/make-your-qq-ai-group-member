@@ -54,6 +54,8 @@ QQ 好友/群聊
 
 **推荐 DeepSeek**（便宜 + 国内直连不需要代理），官方网址：**https://platform.deepseek.com/usage**
 
+> ⚠ 模板里的模型名（`deepseek-flash` / `deepseek-v4-flash-vision-exp`）是时点快照，**部署时去上面官网核对当前可用的模型名**，上游改名就按实际替换 `provider[].model`。
+
 **用户没有 API key 时的创建引导**：
 1. 打开 https://platform.deepseek.com/usage 注册/登录（手机号即可）
 2. 左侧菜单「API keys」→「创建 API key」→ 复制保存（**密钥只显示这一次**，关掉就看不到了）
@@ -163,7 +165,7 @@ io.open(p, "w", encoding="utf-8-sig").write(
 - 私聊免唤醒：`friend_message_needs_wake_prefix=false`（否则私聊装死，pitfalls D1）
 - 分段回复：开启（interval 1.5~3.5s，段间空行是正常行为，pitfalls D3）
 - 默认人格：`大肥鱼DeepSeek`（人格卡在 Phase 5 写库）
-- 双 provider：deepseek-flash + deepseek-vision
+- 双 provider 分工：deepseek-flash 只管文本/工具；所有收图场景（插件识图、图片转述）都走 deepseek-vision
 
 ## Phase 4：安装读空气插件
 
@@ -239,7 +241,8 @@ astrbot run
 | 3 | 群里 @bot 说话 | 回复；@/引用行为按概率（非每次必 @） |
 | 4 | 群里不 @ 说闲话 | 概率触发（0.1），60s 内最多 6 条 |
 | 5 | 群里发一张图 | 视觉模型识图并吐槽 |
-| 6 | 查 `$INSTALL\astrbot\logs\` 日志 | 有读空气概率判定/决策相关日志行（决策推理块默认关闭，无推理输出属正常） |
+| 6 | 群里**引用一条带图的消息**提问 | 走 caption/vision 链路正常回复，不报 400（验证 flash 模型不接图） |
+| 7 | 查 `$INSTALL\astrbot\logs\` 日志 | 有读空气概率判定/决策相关日志行（决策推理块默认关闭，无推理输出属正常） |
 
 全部通过 → 部署完成。任何一步失败 → 按 `references/pitfalls.md` 对应章节排查。
 

@@ -42,7 +42,7 @@ QQ 好友/群聊
 make-your-qq-ai-group-member/
 ├── SKILL.md                  # Agent 执行的主流程（Phase 0-7 + 验收清单）
 ├── references/
-│   ├── pitfalls.md           # 18 条真实踩坑记录（出问题先查它）
+│   ├── pitfalls.md           # 20 条真实踩坑记录（出问题先查它）
 │   ├── config-params.md      # 全部配置参数说明（想调"话多话少"看这个）
 │   └── *-readme.md           # 三个上游组件的 README 存档（可脚本更新）
 ├── templates/                # 预置配置模板（已脱敏、含占位符）
