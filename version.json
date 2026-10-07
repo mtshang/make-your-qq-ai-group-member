@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.3.2",
-  "updated": "2026-10-07",
-  "notes": "A2 重写：安装器卡死根因是内置 GitHub 镜像失效（非腾讯 CDN），零连接判定 + Plan B 绕过 GUI 手动组装；版本检查机制（三源比对/clone 优先）；bot_manager 全程骨架；安装器无人值守；29 条踩坑"
+  "version": "1.3.3",
+  "updated": "2026-10-08",
+  "notes": "A2 Plan B 手动组装完整闭环（实测走通）：组装双坑——package.json 被 NapCat repo 版覆盖（用 qqnt.json 改 main→loadNapCat.js）+ bat 必须抄全 launcher.bat 的 5 个 NAPCAT_* 环境变量；验证标志 pipe+Process resumed；版本检查机制；bot_manager 全程骨架；安装器无人值守；29 条踩坑"
 }

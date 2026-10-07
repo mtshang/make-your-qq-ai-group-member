@@ -25,13 +25,15 @@
 - **原因（翻安装器二进制字符串实测查明）**：安装器干三件事——① 从**腾讯 CDN** 下载 QQ 内核（主源，失败走 GitHub 镜像）；② 从 **GitHub 下载 NapCat.Shell.zip（它内置的 gh 镜像列表几乎全灭——卡死环节几乎总是这步）**；③ 用目录里的 7z 把两者解压组装出 `NapCat.<构建号>.Shell`。**腾讯 CDN 反而是通的**（实测直连/代理都能跑满 300MB）——清代理/换网端对它无效，别浪费时间。
 - **解决**：
   1. 常规重试一次：杀掉卡死的安装器 → 删残包 → 重新后台拉起；
-  2. 仍卡死 → **Plan B：绕过 GUI 安装器手动组装**：
+  2. 仍卡死 → **Plan B：绕过 GUI 安装器手动组装（已完整实测走通，产物与安装器一致）**：
      - 用 Python 扫安装器 exe 的二进制字符串（ASCII + UTF-16 都扫）拿下载 URL 与组装逻辑（内核 URL 形如 `QQ_9.9.33_*_x64_01.exe`）；
-     - 手动下两件套：`NapCat.Shell.zip`（GitHub，约 30MB，download.py/curl 走用户代理轮换）+ QQ 内核安装包（**腾讯 CDN 直连**，约 300MB，URL 从上一步字符串里抠）；
-     - 组装：Shell.zip 解压 → QQ 安装包是 7z SFX 自解压格式，用 7z 抽取程序文件叠加进 Shell 目录的 `resources\app\` → 确认两个启动 bat（napcat.bat / napcat.quick.bat）就位。引导机制：`NapCatWinBootMain.exe <QQ.exe路径> <Hook.dll>` 注入启动；
+     - 手动下两件套：`NapCat.Shell.zip`（GitHub，约 30MB，download.py/curl 走用户代理轮换）+ QQ 内核安装包（**腾讯 CDN 直连**，约 300MB，实测 1 分 44 秒，URL 从上一步字符串里抠）；
+     - 组装：Shell.zip 解压出框架 → QQ 安装包是 7z SFX 自解压格式，用 7z 抽取程序文件 → 按 Shell.zip 的目录结构组装出 `NapCat.<构建号>.Shell` 便携目录（NapCat 文件叠加进 `versions\9.9.33-*\resources\app\`）→ 确认两个启动 bat（napcat.bat / napcat.quick.bat）就位。引导机制：`NapCatWinBootMain.exe <QQ.exe路径> <Hook.dll>` 注入启动；
+     - **组装坑 A（实测炸过）：package.json 被覆盖**——把 NapCat repo 版的 package.json（开发清单，**没有 main 字段**）叠进 `resources\app\` 会覆盖 QQ 原版清单，Electron 找不到入口默认找 index.js → 启动弹 `ERR_MODULE_NOT_FOUND`（main process JavaScript error）秒崩。**修复：用 Shell.zip 里现成的 `qqnt.json`（官方为替换 package.json 准备的正确清单，`"main": "./loadNapCat.js"`）**——QQ 原版 package.json 的 main 本指向 `application.asar/app_launcher/index.js`，只把 main 改指向 loadNapCat.js（直接用 qqnt.json 改名/合并即可）；
+     - **组装坑 B（实测炸过）：启动 bat 少环境变量**——官方 launcher.bat 会设 **5 个 NAPCAT_* 环境变量**告诉 Hook 该去哪加载，手写 bat 一个没设照样跑不起来。**照抄 Shell.zip 里 launcher.bat 的环境变量段**到自己的 bat；
+     - **验证标志**：启动窗口出现 `Creating pipe \\.\pipe\NapCat...` + `Process resumed` + `resourcesPath` 指向 Shell 目录 = 引导链通，等扫码即可；弹 `ERR_MODULE_NOT_FOUND` = 回到坑 A。日志里的 `Most NODE_OPTIONS are not supported` ERROR 行不致命，可忽略；
      - 7z 抽不动安装包 → 查本机已装 QQ 拷贝程序文件 → 再不行让用户手动装一次 QQ 到指定目录。
-  - QQ 内核版本要求 **40768 以上**，推荐 **9.9.33-52230**。安装器装好的版本号目录名以实际为准（通配匹配即可）。
-  - ⚠ 实测进度标注：Plan B 已验证到"两件套下载完成 + 引导原理查明"，**最终组装一步尚未完整走通**——按上述原理执行，细节以实际为准，走通后回填本条。
+  - QQ 内核版本要求 **40768 以上**，推荐 **9.9.33-52230**（本条 Plan B 实测组装用的就是 52230，构建号恰与文档示例相同纯属巧合——依旧必须实测）。安装器装好的版本号目录名以实际为准（通配匹配即可）。
 
 ---
 
