@@ -29,7 +29,7 @@ bot_manager.py — 一键启动/停止 AstrBot + NapCat（QQ AI 群聊机器人�
 设计说明:
     - 刻意不做"单窗口聚合日志"：NapCat 首次登录需交互（扫码）、两个进程输出编码不同、
       Ctrl+C 信号传递在 Windows 上不可靠。独立窗口 + 一键启停是可靠性最优解。
-    - 首次部署/扫码请按 SKILL.md Phase 5/6 原方式操作；本脚本用于日常启停。
+    - 部署期与日常全部用本脚本：start 起服务、scan 扫码、stop 停止；流程见 SKILL.md Phase 5/6。
     - 交付自包含：任意命令运行时把本脚本拷为 <部署目录>\\.bot_runtime\\bot_manager.py（运行时副本），
       双击 bat 用相对路径调它——skill 目录日后移动/更新/删除不影响已交付的机器人。
     - 标准库实现，无第三方依赖。
@@ -430,7 +430,7 @@ def cmd_start(cfg, base):
             f.write(f'@echo off\r\ntitle qqaibot-NapCat\r\ncd /d "{shell_dir}"\r\n'
                     f'call napcat.quick.bat\r\npause\r\n')
         subprocess.run(["cmd", "/c", "start", "", bat], check=False)  # 空标题，同 AstrBot 处的坑
-        log("[启动] NapCat 新窗口已打开（quick 免扫码登录；首次部署请按 SKILL.md Phase 6 用 napcat.bat 扫码）")
+        log("[启动] NapCat 新窗口已打开（quick 免扫码登录；首次部署的扫码也走本脚本 scan，见 SKILL.md Phase 6）")
         # 后台尽力把 bot 的 QQ 窗口标题改成 qqaibot-QQ-<QQ号>（防与主号 QQ 混淆）；
         # QQ 登录前后会自己重设标题，ps1 内部轮询多轮；失败不影响功能
         qq_no = str(cfg.get("qq") or "").strip()

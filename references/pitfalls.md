@@ -107,7 +107,7 @@
 - **原因**（源码 `auth_password.py` / `astrbot_config.py` 实证）：登录校验对**空 hash 直接返回 False**，任何密码都登不上去。旧版"默认 astrbot/astrbot"是配置里预置了 astrbot 的 pbkdf2 hash 的场景，空值不走这条路。
 - **真实机制**：启动时检测到密码字段全空 → 自动生成 24 位随机密码写入配置，并**打印在启动日志**（`Initial password:` 行），同时标记强制改密。
 - **解决（三选一）**：
-  1. **推荐**：启动前设环境变量预设密码（在运行 `astrbot run` 的同一个 shell）：
+  1. **推荐**：启动前设环境变量预设密码（在**启动 bot_manager 的同一个 shell** 里设，bot_manager 开的服务子窗口会继承）：
      PowerShell：`$env:ASTRBOT_DASHBOARD_INITIAL_PASSWORD = "Astrbot123"`
      ⚠ 密码规则：**≥8 位且同时含大写字母、小写字母、数字**（`Astrbot123` 合规；`astrbot`、`12345678` 不合规会**启动直接报错**）
   2. 不设变量 → 从启动日志抄随机密码给用户
@@ -144,7 +144,7 @@
       └── versions\<QQ内核版本>\resources\app\napcat\config\
           └── onebot11_<QQ号>.json   ← OneBot 反连配置放这里
   ```
-- **解决**：永远进 `NapCat.*.Shell\` 目录跑 `napcat.bat`。配置路径也在这棵目录树下（用通配 `NapCat.*.Shell\versions\*\resources\app\napcat\config\` 定位，版本号不要写死）。
+- **解决**：`napcat.bat` 必须从 `NapCat.*.Shell\` 目录里跑——**部署期这一步由 `bot_manager.py scan` 代办（agent 不手动跑）**，此条是理解目录结构/手写脚本时的路径依据。配置路径也在这棵目录树下（用通配 `NapCat.*.Shell\versions\*\resources\app\napcat\config\` 定位，版本号不要写死）。
 
 ### C2. 反向 WebSocket 必须带 `/ws` 后缀
 - **症状**：NapCat 登录成功但 AstrBot 收不到任何连接。
@@ -154,19 +154,19 @@
 
 ### C3. onebot11 配置文件名必须带 QQ 号（登录后才拿得到）
 - **规则**：NapCat 按"协议端登录的 QQ 号"找配置，文件名是 `onebot11_<QQ号>.json`。
-- **正确姿势**：QQ 号**不用提前问用户**——首次扫码登录成功后，NapCat 会在 `NapCat.*.Shell\versions\*\resources\app\napcat\config\` 下生成 `onebot11_<QQ>.json` / `napcat_<QQ>.json`，从文件名读号，再把模板的 `network.websocketClients` 合并进生成的文件，重启 NapCat（`napcat.quick.bat`）生效。
+- **正确姿势**：QQ 号**不用提前问用户**——首次扫码登录成功后，NapCat 会在 `NapCat.*.Shell\versions\*\resources\app\napcat\config\` 下生成 `onebot11_<QQ>.json` / `napcat_<QQ>.json`，从文件名读号，再把模板的 `network.websocketClients` 合并进生成的文件，重启 NapCat（`bot_manager.py start`，自带先杀后启）生效。
 - **症状**：登录成功但 AstrBot 没收到连接 → 八成是生成的配置没注入反连设置，或注入后没重启 NapCat。
 
 ### C4. NapCat 首次启动终端不出二维码
 - **症状**：跑 `napcat.bat` 后终端迟迟不渲染二维码（首启常见），像是卡死。
 - **原因**：二维码依赖终端 TTY 渲染；stdout 被重定向/接到命名管道时画不出来（agent 部署期高发——很多 agent 环境默认重定向输出）。
-- **解决（按序兜底）**：① NapCat 会把二维码**落盘**为 `qrcode.png`（在 Shell 目录下找 `*.png`），把图片单独发给用户用手机 QQ 扫即可；② 直接重跑一次 `napcat.bat`，**第二次终端必出码**（实测）；③ 启动日志里有二维码内容的链接可解码。固定流程建议：**二维码一律单独发文件**，不赌终端渲染。
+- **解决（按序兜底）**：① NapCat 会把二维码**落盘**为 `qrcode.png`（在 Shell 目录下找 `*.png`），把图片单独发给用户用手机 QQ 扫即可；② 直接重跑一次 `bot_manager.py scan`（自带先杀再启），**第二次终端必出码**（实测）；③ 启动日志里有二维码内容的链接可解码。固定流程建议：**二维码一律单独发文件**，不赌终端渲染；**开窗时就告知用户"约一分钟没出码就告诉我"**，别让用户干等。
 - **注意**：终端无码 ≠ 启动失败，别急着杀进程重试（参见 C5 杀进程的规矩）。
 
 ### C5. NapCat 同号多开互踢连锁全灭
 - **症状**：多套 NapCat/QQ 实例叠加后**全部进程自灭**，服务端登录态被踢，bot 掉线，被迫重新扫码（实测 3 套叠加 15 进程全灭、连扫 3 次码）。
 - **原因**：同一 QQ 号的协议端登录态在服务端唯一——新实例上线就踢旧实例；多套互相踢 + 自动重连风暴会把所有实例搞死。
-- **铁律**：**任何启动前先确认进程清零或状态明确**：`bot_manager.py status` 先看；`bot_manager start` 已内置"启动前先杀对应组件全部残留"，可以放心重复跑；部署期**禁止**手动跑 `napcat.bat` 与 `bot_manager start` 混用（要么全手动——每次启动前手动 `kill_napcat`，要么全 bot_manager）；发现多实例先全杀干净再起一套。
+- **铁律**：**任何启动前先确认进程清零或状态明确**：`bot_manager.py status` 先看；`bot_manager start` 已内置"启动前先杀对应组件全部残留"，可以放心重复跑；部署期**禁止手动跑 `napcat.bat`**——也没有"全手动"选项，启动/扫码/重启一律 bot_manager（先杀后启焊死在流程里）；发现多实例先全杀干净再起一套。
 
 ### C6. 按窗口标题 taskkill 会误杀（/FI 匹配范围比直觉广）
 - **症状**：本想杀某个实例，结果连别的窗口/进程一起被带走（实测两次误杀，其中一次杀掉刚扫码成功的登录态 → 第 4 次扫码）。
