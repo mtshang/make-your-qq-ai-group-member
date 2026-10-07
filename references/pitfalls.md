@@ -182,6 +182,7 @@
 - **症状**：agent 手动开窗跑 napcat.bat 时报"Windows 找不到文件"；同时部署过程中积累多个停在"请按任意键继续"的旧扫码窗口（进程已死、cmd 壳残留）没人清。
 - **原因**：一是路径/cwd 事故——napcat.bat 路径带空格时没加引号、cwd 没切过去，或 `start` 后第一个裸参数被当成了程序名（找不到的自然是 bat）；二是每轮扫码/重启都开新窗口，旧窗口里的进程死了但壳还停在 pause，越积越多。
 - **解决**：**扫码一律 `python bot_manager.py scan`**——它自己校验 deploy_state 里 `napcat_shell_dir`/napcat.bat 是否存在（缺失时明确报错指向回填）、先杀残留 NapCat、生成 bat 开新码窗；旧扫码壳窗口由 scan/start/kill_napcat 自动清理。**Phase 6 装完 NapCat 立刻回填 deploy_state 的 napcat 字段，此后 NapCat 的启动/扫码/停止/清理全走 bot_manager，agent 不再手动跑 napcat.bat**。
+- **回填纪律**：`NapCat.<构建号>.Shell` 的数字**随安装版本变，不确定每次是否一样，别照抄文档/示例里的号**（52230 只是样例）——装完必须 `Get-ChildItem $INSTALL\napcat -Directory -Filter "NapCat.*.Shell"` 实测拿到真实目录名再回填，**启动 NapCat 之前先确认这一步做过了**。
 
 ---
 
