@@ -40,6 +40,7 @@ import time
 CFG_NAMES = ("deploy_state.json", "bot_manager.json")
 BAT_ASTRBOT = "start_astrbot.bat"
 BAT_NAPCAT = "start_napcat.bat"
+RUNTIME_DIR = ".bot_runtime"   # 启动 bat 的存放目录（内部产物，用户不需要碰）
 
 DASH_PORT = "6185"   # AstrBot WebUI
 WS_PORT = "6199"     # AstrBot 反向 WS（NapCat 连这里）
@@ -123,6 +124,24 @@ def kill_tree(pid):
                    capture_output=True, text=True, errors="replace")
 
 
+def runtime_dir(base):
+    """启动 bat 的运行时目录：收进 .bot_runtime\\，避免与用户文件混在安装根目录。"""
+    d = os.path.join(base, RUNTIME_DIR)
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def clean_legacy_bat(base, name):
+    """清理旧版本直接生成在安装根目录的同名 bat（可能被运行中的 cmd 锁住，忽略失败）。"""
+    legacy = os.path.join(base, name)
+    try:
+        if os.path.exists(legacy):
+            os.remove(legacy)
+            log(f"[清理] 移除根目录旧启动脚本: {name}")
+    except OSError:
+        pass
+
+
 def cmd_status(cfg, base=None):
     dash = listening_pids(DASH_PORT)
     ws = listening_pids(WS_PORT)
@@ -191,7 +210,8 @@ def cmd_start(cfg, base):
     # 启动前先杀一次残留（用户约定 + pitfalls C5：永远单实例全新启动）
     cmd_kill_astrbot(cfg, base)
     time.sleep(2)
-    bat = os.path.join(base, BAT_ASTRBOT)
+    clean_legacy_bat(base, BAT_ASTRBOT)
+    bat = os.path.join(runtime_dir(base), BAT_ASTRBOT)
     with open(bat, "w", encoding="gbk", errors="replace") as f:
         f.write(f'@echo off\r\ntitle qqaibot-AstrBot\r\nset "ASTRBOT_ROOT={root}"\r\n'
                 f'cd /d "{root}"\r\n"{exe}" run\r\npause\r\n')
@@ -221,7 +241,8 @@ def cmd_start(cfg, base):
         if not os.path.isdir(shell_dir):
             log(f"[错误] NapCat Shell 目录不存在: {shell_dir}")
             return 1
-        bat = os.path.join(base, BAT_NAPCAT)
+        clean_legacy_bat(base, BAT_NAPCAT)
+        bat = os.path.join(runtime_dir(base), BAT_NAPCAT)
         with open(bat, "w", encoding="gbk", errors="replace") as f:
             f.write(f'@echo off\r\ntitle qqaibot-NapCat\r\ncd /d "{shell_dir}"\r\n'
                     f'call napcat.quick.bat\r\npause\r\n')
