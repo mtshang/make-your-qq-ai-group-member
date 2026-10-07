@@ -18,12 +18,12 @@ skill 会持续迭代修坑，**开工前先确认用的是最新版**（10 秒�
    curl -s https://raw.githubusercontent.com/mtshang/make-your-qq-ai-group-member/main/version.json
    curl -s https://ghfast.top/https://raw.githubusercontent.com/mtshang/make-your-qq-ai-group-member/main/version.json
    ```
-   仓库地址以 `version.json` 的 `repo` 字段为准；jsdelivr 对国内网络最友好，放第一位。
+   仓库地址以 `version.json` 的 `repo_url` 字段为准；jsdelivr 对国内网络最友好，放第一位。
 3. 对比结果二选一：
    - **一致**（或三个源都拉不到/仓库私有 404/超时）→ **直接跳过继续正常流程，不许卡在这一步**；
-   - **远端更新** → 告知用户「skill 有新版本 vX.Y.Z，是否更新到最新版？」，同意则按序更新：
-     - 本 skill 目录本身是 git 仓库（有 `.git`）→ 就地更新：`git -C <skill目录> pull --ff-only`；
-     - pull 失败或不是 git 仓库 → **带镜像重新 clone**（旧目录保留不动）：`git clone --depth 1 https://ghfast.top/https://github.com/mtshang/make-your-qq-ai-group-member.git <新目录>`（镜像前缀轮换候选：`ghfast.top`、`gh-proxy.com`——即 `https://gh-proxy.com/https://github.com/<repo>.git`；直连也值得试一发）；
+   - **远端更新** → 告知用户「skill 有新版本 vX.Y.Z，是否更新到最新版？」，同意则更新（**优先 clone**——拿到本 skill 的多数方式不是 git clone，目录里没有 `.git`，就地 pull 大概率用不上；clone 到新目录旧目录保留，可随时回退）：
+     - **首选：带镜像重新 clone**：`git clone --depth 1 https://ghfast.top/https://github.com/mtshang/make-your-qq-ai-group-member.git <新目录>`（镜像前缀轮换候选：`ghfast.top`、`gh-proxy.com`——即 `https://gh-proxy.com/https://github.com/<repo>.git`；直连也值得试一发）。clone 完**用新目录里的 skill 继续**，并告知用户新位置；
+     - 备选：本 skill 目录本身是 git 仓库（有 `.git`）→ 就地 `git -C <skill目录> pull --ff-only`（更省事；失败回到上面 clone）；
      - 用户选择不更新 → 用当前版本继续。
    - **更新成功后重新读本 SKILL.md**（内容可能已变化），再继续。
 
