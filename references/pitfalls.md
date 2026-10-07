@@ -46,6 +46,10 @@
       ```
   - 注意 `set`/`$env:` 只对当前会话生效，`setx`/`SetEnvironmentVariable(...,"User")` 对新会话生效——**两个都做**。
   - **以后每次启动 astrbot 的 shell 必须带着这个变量**（新开的 shell 会从注册表继承，没问题；但某些由服务/计划任务拉起的进程不一定继承，需留意）。
+- **⚠ v4.28.2 实测新变种（2026-10）**：`astrbot init` 是 npm-init 式的 **cwd 语义**——**无视 `ASTRBOT_ROOT`**，把 `data/` 直接建到当前工作目录（agent 工作区/用户主目录中招）。`ASTRBOT_ROOT` 影响的是 `run` 时的目录判定，init 不看它。
+  - **解决**：init 命令必须先 `Set-Location`（cmd 用 `cd /d`）到 `$INSTALL\astrbot` 再执行——SKILL.md Phase 2 的单条自包含命令已内置。
+  - **验证**：init 后立刻 `verify.py file "$INSTALL\astrbot\data"`；发现 data 落在别处 → 确认无数据后删掉，在正确目录重跑。
+  - 另实测：v4.28.2 的 `init` **不生成** `cmd_config.json`（只建 `data\` 骨架），属正常，Phase 3 直接铺模板。
 
 ### B2. 配置文件带 BOM，裸 `json.load` 直接炸
 - **症状**：`json.JSONDecodeError: Unexpected UTF-8 BOM`。
@@ -169,8 +173,8 @@
 - **解决**：三项白名单都填一个非空占位值 `["disabled"]`（模板已写好），没有 QQ 号能匹配上 → 全员不可用。
 
 ### D5. 发图片报 400 / bot 不识图
-- **原因**：DeepSeek 只有视觉模型收图。普通 `deepseek-flash` 收到图片消息直接 400。
-- **解决**：保持模板里的双 provider 结构：`deepseek/deepseek-vision`（模型 `deepseek-v4-flash-vision-exp`）专收图，插件配置 `图片识别 provider` 指向它。别把视觉模型下的 provider 删了。
+- **原因**：只有视觉模型收图，纯文本模型收到图片消息直接 400。
+- **解决**：保持模板里的双 provider 结构：`deepseek/deepseek-vision` 专收图（当前模型 `deepseek-flash`——该模型已原生支持视觉，2026-10 实测；旧 `deepseek-v4-flash-vision-exp` 已退役别再填），插件配置 `图片识别 provider` 指向它。别把视觉 provider 删了。
 
 ### D6. token 消耗比预期高
 - **原因**：读空气的"决策 AI"对每条**通过概率筛**的群消息都要调一次小模型做决策。概率 `initial_probability=0.1` 已经把 90% 消息挡在 AI 调用之前（这部分零 token）。
@@ -193,3 +197,8 @@
 - **风险**：上游若把语义改成"空名单=全拦"，部署完机器人会全员沉默（群里私聊都没反应）。
 - **症状**：升级 AstrBot 后所有消息无响应，日志停在白名单检查阶段。
 - **解决**：先查 `id_whitelist` 是否仍为空 + 语义是否反转；稳妥做法是把你的账号填进 `id_whitelist` 或直接 `enable_id_white_list: false`。
+
+### D10. deepseek-flash 默认开思考模式（token 隐形大坑）
+- **症状**：回复明显变慢、token 消耗莫名翻倍；裸调 API 测试时 `max_tokens` 给小了返回**空内容**（思考块把额度吃光，容易误判成"模型坏了"）。
+- **原因**（2026-10 官方文档 + 实测）：`deepseek-flash`（V4.1-Flash）**默认开启思考模式且 effort=high**，群聊高频回复场景每条都白烧 reasoning token。这是模板快照之后的上游行为变化——旧模板 `custom_extra_body` 为空时等于裸奔。
+- **解决**：模板已在两个 provider 的 `custom_extra_body` 注入 `{"thinking": {"type": "disabled"}}`。换其他模型/服务商时核对该模型是否默认思考、关闭参数名是什么。

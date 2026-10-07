@@ -30,7 +30,7 @@ QQ 好友/群聊
 | AstrBot | PyPI（`uv tool install astrbot`） | 最新稳定版，Python 3.12 |
 | NapCatQQ | GitHub release 最新版 OneKey | `releases/latest/download/NapCat.Shell.Windows.OneKey.zip` |
 | 读空气插件 | GitHub main 分支 | `archive/refs/heads/main.zip` |
-| DeepSeek | 用户已有 API key | 双模型：deepseek-flash（文本）+ deepseek-v4-flash-vision-exp（视觉） |
+| DeepSeek | 用户已有 API key | 双 provider 均为 deepseek-flash（已原生支持视觉，须关思考模式 pitfalls D10） |
 
 **仓库参考**（含完整 README，遇字段疑问先查）：
 - `references/AstrBot-readme.md`、`references/NapCatQQ-readme.md`、`references/astrbot_plugin_group_chat_plus-readme.md`
@@ -70,7 +70,7 @@ QQ 好友/群聊
 
 **推荐 DeepSeek**（便宜 + 国内直连不需要代理），官方网址：**https://platform.deepseek.com/usage**
 
-> ⚠ 模板里的模型名（`deepseek-flash` / `deepseek-v4-flash-vision-exp`）是时点快照，**部署时去上面官网核对当前可用的模型名**，上游改名就按实际替换 `provider[].model`。
+> ⚠ 模型名快照警告（2026-10 实测更新）：`deepseek-flash`（= V4.1-Flash）**已原生支持视觉**，旧视觉模型 `deepseek-v4-flash-vision-exp` 已退役（仍被接受但别再填）；`deepseek-flash` **默认开启思考模式**（白烧 reasoning token + 拖慢回复），模板已通过 `custom_extra_body` 关闭（pitfalls D10）。部署时仍应去官网核对最新模型名，上游改名按实际替换 `provider[].model`。
 
 **用户没有 API key 时的创建引导**：
 1. 打开 https://platform.deepseek.com/usage 注册/登录（手机号即可）
@@ -78,7 +78,7 @@ QQ 好友/群聊
 3. 左侧「充值」→ 充值金额（最低档即可，10 元能用很久，量入充值）
 4. 把创建好的 key 完整复制交给 agent 填入配置（前缀因服务商而异，如 sk- / sk-or- / AIza- 等）
 
-**⚠️ 视觉模型兼容性**：模板预置了双模型（文本 + 视觉识图），其中**识图依赖视觉模型**（DeepSeek 的 `deepseek-v4-flash-vision-exp`）。如果用户提供的 API **不支持 vision 模型**，必须把识图功能关闭：插件配置 `astrbot_plugin_group_chat_plus_config.json` 中 `enable_image_processing` 改为 `false`（可顺手把 cmd_config 里的 vision provider 删掉或 `enable: false`），否则群里发图会报错。
+**⚠️ 视觉模型兼容性**：模板预置了双 provider 结构，其中**识图依赖视觉模型**（`deepseek/deepseek-vision`，当前指向 `deepseek-flash`——该模型已原生支持视觉）。如果用户提供的 API **不支持 vision 模型**，必须把识图功能关闭：插件配置 `astrbot_plugin_group_chat_plus_config.json` 中 `enable_image_processing` 改为 `false`（可顺手把 cmd_config 里的 vision provider 删掉或 `enable: false`），否则群里发图会报错。
 
 ## 代理检测（Phase 0 顺带做）
 
@@ -158,17 +158,18 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 uv tool install astrbot --python 3.12
 ```
 
-**设置 `ASTRBOT_ROOT`（在 `astrbot init` 之前！**，详见 pitfalls B1，这是最容易踩的坑）：
+**设置 `ASTRBOT_ROOT` 并在目标目录执行 init**（详见 pitfalls B1，两个坑都要防）：
 
-- **推荐：单条自包含命令**——变量和 init 绑在同一条命令里，子进程必然继承，**完全不依赖 shell 会话状态**（GUI 型/命令式 agent 通吃）：
+- **推荐：单条自包含命令**——变量、工作目录、init 绑在同一条命令里，子进程必然继承，**完全不依赖 shell 会话状态**（GUI 型/命令式 agent 通吃）：
   ```powershell
-  powershell -Command "$env:ASTRBOT_ROOT='<INSTALL>\astrbot'; & '<astrbot_exe>' init -y"
+  powershell -Command "$env:ASTRBOT_ROOT='<INSTALL>\astrbot'; Set-Location '<INSTALL>\astrbot'; & '<astrbot_exe>' init -y"
   ```
-  （`<astrbot_exe>` 用完整路径，如 `%USERPROFILE%\.local\bin\astrbot.exe`，连 PATH 问题一起绕开）
+  （`<astrbot_exe>` 用完整路径，如 `%USERPROFILE%\.local\bin\astrbot.exe`，连 PATH 问题一起绕开；`Set-Location` 不能省——v4.28.2 实测 `init` 是 **cwd 语义**，无视 ASTRBOT_ROOT 把 data 建到当前目录，pitfalls B1 变种）
 - setx 持久化仍做一次（给用户以后手动跑 astrbot 的场景兜底，对当前会话无效只影响新进程）：
-  cmd：`setx ASTRBOT_ROOT "<INSTALL>\astrbot"`
-- **防呆验证**：`verify.py file "$INSTALL\astrbot\data"` 目录已生成即成功。若 init 生成到了别处（如用户主目录），说明变量没带上——删掉错误目录，用上面的单条命令重来（别再用会话变量方式）。
+  cmd：`setx ASTRBOT_ROOT "<INSTALL>\astrbot"`（安全策略拦 reg/setx 时用 Python winreg 等效写入用户环境变量）
+- **防呆验证**：`verify.py file "$INSTALL\astrbot\data"` 目录已生成即成功。若 data 出现在**别处**（agent 工作区/用户主目录），说明 cwd 或变量没带上——删掉错误目录（确认无数据），用上面的单条命令重来。
 - **`-y` 必须带**：跳过交互式确认（不带的话 init 卡在提问，agent 场景直接挂起）。
+- v4.28.2 实测：`init` **不生成** `cmd_config.json`（属正常，Phase 3 直接铺模板），只生成 `data\` 骨架。
 
 ## Phase 3：铺配置模板 + 替换变量
 
@@ -194,6 +195,18 @@ io.open(p, "w", encoding="utf-8-sig").write(
 
 验证：`verify.py json` 两个文件均可解析；`verify.py jsonkey cmd_config.json platform` 等抽查。
 
+**立刻验证 API key 可用**（推荐，30 秒防翻车——别等 Phase 7 验收才发现 401）：
+
+```python
+import urllib.request
+req = urllib.request.Request("https://api.deepseek.com/models",
+    headers={"Authorization": "Bearer <KEY>"})
+print(urllib.request.urlopen(req, timeout=15).status)   # 200 = key 有效
+```
+
+- 200 → key 有效，继续；401 → key 抄错/未生效/未充值，**立刻停下问用户**（行为约定第 2 条）；其他服务商把 URL 换成 `provider_sources[0].api_base + /models`。
+- 注意：这步只验鉴权不验模型。若后面聊天报"模型不存在"，回看上方模型名快照警告。
+
 **创建部署状态文件**（Phase 5 的启动全靠它；这也是全程的断点记录）：把 `templates/deploy_state.json` 复制到 `$INSTALL\deploy_state.json`，填两个字段：
 - `astrbot_root` → `$INSTALL\astrbot`；`astrbot_exe` → astrbot.exe 实际路径（uv 默认 `%USERPROFILE%\.local\bin\astrbot.exe`）
 - `napcat_shell_dir` / `napcat_root` → **暂留空字符串**（Phase 6 装完 NapCat 回填），bot_manager 会自动只启动 AstrBot
@@ -204,7 +217,8 @@ io.open(p, "w", encoding="utf-8-sig").write(
 - 私聊免唤醒：`friend_message_needs_wake_prefix=false`（否则私聊装死，pitfalls D1）
 - 分段回复：开启（interval 1.5~3.5s，段间空行是正常行为，pitfalls D3）
 - 默认人格：`大肥鱼DeepSeek`（人格卡在 Phase 5 写库）
-- 双 provider 分工：deepseek-flash 只管文本/工具；所有收图场景（插件识图、图片转述）都走 deepseek-vision
+- 双 provider 分工：`deepseek/deepseek-flash` 只管文本/工具；`deepseek/deepseek-vision`（同模型、带 image modality）专收图
+- 思考模式：两个 provider 的 `custom_extra_body` 已注入 `{"thinking": {"type": "disabled"}}`——deepseek-flash 默认开思考，群聊场景白烧 reasoning token（pitfalls D10），换其他模型/服务商时核对此项
 
 ## Phase 4：安装读空气插件
 
@@ -224,7 +238,7 @@ python scripts/download.py https://github.com/Him666233/astrbot_plugin_group_cha
 python <skill目录>\scripts\bot_manager.py start
 ```
 - **必须用 bot_manager 启动，禁止裸跑 `astrbot run`**——它是前台常驻进程，命令式 agent 会挂死（pitfalls B7）。bot_manager 开新窗口跑服务、轮询 `6185` 就绪后自己退出，agent 零风险；NapCat 未配置时自动只启动 AstrBot，正好符合当前阶段。
-- 启动完成标志：bot_manager 输出 `WebUI 已监听`（或 `status` 显示 AstrBot RUNNING）。插件依赖安装可能需要 1~2 分钟。
+- 启动完成标志：bot_manager 输出 `WebUI 已监听`（或 `status` 显示 AstrBot RUNNING）。**首次启动要装插件依赖，1~3 分钟属正常**——bot_manager 最多等 120 秒，超时警告≠失败：窗口还在滚日志就继续等（`status` 复查），窗口消失/停在 pause 才是启动失败。
 - 然后 **停止**（写数据库必须先停，避免锁库）：`python bot_manager.py stop`。人类用户手动跑的话在 AstrBot 窗口按 Ctrl+C。
 
 **写人格卡**（data_v4.db 此时已生成）：按 pitfalls B5 的 SQL 脚本，把 `templates/persona_dafeiyu.md` 写入 personas 表，`persona_id` 必须是 `大肥鱼DeepSeek`（与 cmd_config 绑定逐字符一致）。写库前先备份 `data_v4.db`。
@@ -361,6 +375,7 @@ python bot_manager.py status   只读探测两服务状态
 | gcp_reset 禁不掉 | pitfalls D4 |
 | 图片报 400 | pitfalls D5 |
 | token 消耗高 | pitfalls D6 |
+| 回复慢/token 高但 D6 已排除 | pitfalls D10（思考模式没关） |
 | 群里话太多/太冷 | pitfalls D7 |
 | @/引用行为不对 | pitfalls D8 |
 | 升级后全员沉默 | pitfalls D9（空白名单语义依赖） |

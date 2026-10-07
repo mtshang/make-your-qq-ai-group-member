@@ -128,13 +128,15 @@ def cmd_start(cfg, base):
         # start 新控制台窗口跑 bat（引号全部由 bat 文件承担，避免 cmd 转义地狱）
         subprocess.run(["cmd", "/c", "start", "AstrBot", bat], check=False)
         log("[启动] AstrBot 新窗口已打开，等待 WebUI 就绪 ...")
-        for _ in range(30):
+        for _ in range(60):
             time.sleep(2)
             if listening_pids(DASH_PORT):
                 log("[就绪] AstrBot WebUI 已监听")
                 break
         else:
-            log("[警告] 60 秒内未检测到 WebUI，请看 AstrBot 窗口日志排查")
+            log("[警告] 120 秒未检测到 WebUI。首次启动要装插件依赖可能就是慢——"
+                "窗口还在滚动日志就继续等（用 status 复查）；"
+                "窗口消失或停在 pause 才是启动失败，把窗口报错发出来")
 
     nc_root = (cfg.get("napcat_root") or "").strip()
     shell_dir = (cfg.get("napcat_shell_dir") or "").strip()

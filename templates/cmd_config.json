@@ -68,20 +68,28 @@
         "text",
         "tool_use"
       ],
-      "custom_extra_body": {},
+      "custom_extra_body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      },
       "max_context_tokens": 1000000
     },
     {
       "id": "deepseek/deepseek-vision",
       "enable": true,
       "provider_source_id": "deepseek",
-      "model": "deepseek-v4-flash-vision-exp",
+      "model": "deepseek-flash",
       "modalities": [
         "text",
         "image",
         "tool_use"
       ],
-      "custom_extra_body": {},
+      "custom_extra_body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      },
       "max_context_tokens": 1000000
     }
   ],

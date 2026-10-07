@@ -39,7 +39,8 @@
 |---|---|---|
 | `provider_sources[0].api_base` | `https://api.deepseek.com` | ⚙️ API 地址，换其他 OpenAI 兼容服务商时改这里+model |
 | `provider[0].model` | `deepseek-flash` | ⚙️ 主对话模型（文本+工具），**不声明 image**（收图会 400，图片由 caption/vision 链路处理）。模型名以部署时 DeepSeek 官方文档为准 |
-| `provider[1].model` | `deepseek-v4-flash-vision-exp` | ⚙️ 视觉模型，**只有它能收图**（pitfalls D5） |
+| `provider[1].model` | `deepseek-flash` | ⚙️ 视觉 provider 的模型（deepseek-flash 已原生支持视觉）。**只有它能收图**（pitfalls D5）；旧 `deepseek-v4-flash-vision-exp` 已退役，别再填 |
+| `provider[n].custom_extra_body` | `{"thinking": {"type": "disabled"}}` | 🚫 关闭 DeepSeek 思考模式（deepseek-flash 默认开思考且 effort=high，群聊场景白烧 reasoning token，pitfalls D10）。换其他模型/服务商时核对此项 |
 | `provider_settings.default_image_caption_provider_id` | `deepseek/deepseek-vision` | ⚙️ AstrBot 原生链路的图片转述模型（引用带图等场景），**必须指向能收图的 vision provider** |
 | `agent_runner.config.model.provider_id` | `deepseek/deepseek-flash` | 🚫 agent 运行器主模型，与主对话模型保持一致即可 |
 | `agent_runner.config.persona.persona_id` | `大肥鱼DeepSeek` | 🚫 默认人格绑定，**必须与 personas 表里的 persona_id 逐字符一致**（pitfalls B5） |

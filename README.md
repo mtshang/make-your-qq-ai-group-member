@@ -42,7 +42,7 @@ QQ 好友/群聊
 3. Agent 会依次问你三件事：**bot 用的 QQ 小号**、**大模型 API key**（没有会给你创建引导，推荐 DeepSeek）、**安装到哪个目录**（默认 `D:\qqaibot`）
 4. 剩下全自动：下载（国内镜像轮换）→ 配置 → 启动 → 出二维码扫码 → 七项全链路验收
 
-> 部署约 10~20 分钟（视网速）。详细流程、参数说明、20 条踩坑记录都在 `SKILL.md` 和 `references/` 里，人类也能直接读懂。
+> 部署约 10~20 分钟（视网速）。详细流程、参数说明、21 条踩坑记录都在 `SKILL.md` 和 `references/` 里，人类也能直接读懂。
 
 ## 目录结构
 
@@ -50,7 +50,7 @@ QQ 好友/群聊
 make-your-qq-ai-group-member/
 ├── SKILL.md                  # Agent 执行的主流程（Phase 0-7 + 验收清单）
 ├── references/
-│   ├── pitfalls.md           # 20 条真实踩坑记录（出问题先查它）
+│   ├── pitfalls.md           # 21 条真实踩坑记录（出问题先查它）
 │   ├── config-params.md      # 全部配置参数说明（想调"话多话少"看这个）
 │   └── *-readme.md           # 三个上游组件的 README 存档（可脚本更新）
 ├── templates/                # 预置配置模板（已脱敏、含占位符）
