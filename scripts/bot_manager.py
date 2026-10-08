@@ -135,6 +135,17 @@ def norm_win_path(p):
     return (p or "").replace("/", "\\").strip().rstrip("\\")
 
 
+def path_contains(hay, needle):
+    """路径包含匹配：两边都归一化（正反斜杠折叠统一 + 小写）再比。
+
+    等价于"正反斜杠各试一次"——配置可能写 D:/x（正斜杠），进程 API 返回
+    D:\\x（反斜杠），两边风格无论怎么混都不会漏；比逐个形式去试更干净。
+    """
+    if not hay or not needle:
+        return False
+    return norm_win_path(needle).lower() in norm_win_path(hay).lower()
+
+
 def load_config():
     # 依次找: 脚本同目录 -> 脚本上一级（.bot_runtime 副本模式的部署目录）-> 当前目录
     # deploy_state.json 优先，bot_manager.json 兼容旧部署
@@ -234,7 +245,7 @@ def qq_pids_by_image_path(napcat_root):
             buf = ctypes.create_unicode_buffer(1024)
             size = wintypes.DWORD(1024)
             if k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(size)):
-                if root in buf.value.lower():
+                if path_contains(buf.value, root):
                     pids.append(str(pid))
         finally:
             k32.CloseHandle(h)
@@ -252,7 +263,7 @@ def napcat_qq_pids(napcat_root):
         return []
     result = set(qq_pids_by_image_path(root))
     ps = ("Get-CimInstance Win32_Process -Filter \"Name='QQ.exe'\" | "
-          "Where-Object { $_.ExecutablePath -and $_.ExecutablePath.ToLower().Contains('%s') } | "
+          "Where-Object { $_.ExecutablePath -and $_.ExecutablePath.Replace('/','\\').ToLower().Contains('%s') } | "
           "Select-Object -ExpandProperty ProcessId" % root.replace("'", "''"))
     result |= set(run_ps_pids(ps, "qq"))
     return sorted(result)
