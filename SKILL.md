@@ -463,6 +463,7 @@ python bot_manager.py kill_napcat    只杀 NapCat（含残留启动窗口）
 - **WebUI 密码**：首登用预设密码（环境变量）或日志里的随机密码，登录后立即在 WebUI 改掉（pitfalls B6）。
 - **省 token**：决策 AI 推理（`enable_decision_ai_reasoning`）**默认已关闭**；若决策质量不满意可开启观察日志，确认后记得关回（它对每条过筛消息都输出推理块，token 大头）。
 - **风控提醒**：bot 小号避免频繁群发/加好友，首次在常用设备+常用 IP 登录降低风控概率。
+- **⚠️ 交付时必须告知用户：跑通 ≠ 一劳永逸，QQ 风控随时可能强制重新扫码**。quick.bat 的免扫码只对"登录态还在"有效；风控（异地/换 IP、消息频率异常、腾讯策略调整，甚至无征兆）随时可能把登录态踢掉——**表现为 NapCat 终端窗口突然再次出现二维码**（可能部署完当天就发生）。告诉用户**时不时瞄一眼 NapCat 终端，看到二维码 = 手机 QQ 扫一下即可恢复**（自动重连，不用重启）；bot 突然不回消息也先检查这个（pitfalls C9）。agent 排查同理：先 `status` 再看 NapCat 窗口有没有新码，别上来就杀进程重启。
 
 ## 故障速查索引
 
@@ -484,6 +485,7 @@ python bot_manager.py kill_napcat    只杀 NapCat（含残留启动窗口）
 | 杀进程误伤别的窗口 | pitfalls C6（禁按窗口标题杀） |
 | 每次重启都要重新扫码 | pitfalls C7（quick.bat 占位号没改） |
 | 手动跑 napcat.bat 报"找不到文件"/旧扫码窗口越积越多 | pitfalls C8（扫码一律走 bot_manager scan，旧窗口自动清） |
+| 跑通一段时间后 bot 不回消息 | pitfalls C9（风控强制下线，NapCat 终端出新二维码，让用户重扫） |
 | 私聊没反应 | pitfalls D1 |
 | /help 不触发 | pitfalls D2 |
 | 回复有空行 | pitfalls D3 |

@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.3.9",
+  "version": "1.4.0",
   "updated": "2026-10-08",
-  "notes": "部署报告回灌收尾：C4 二维码落盘路径精确化（<Shell目录>\\cache\\qrcode.png）；B8 并入实测参照（脚本内部 subprocess 调探测+落文件读回不受沙箱影响，与 ctypes 互补）；29 条踩坑"
+  "notes": "修关键 bug：cfg 路径正斜杠未归一化导致 QQ 进程探测/击杀全漏（norm_win_path 统一反斜杠，实测 5 进程全中+全灭+不误伤）；新增 C9 风控强制重扫码运维常识（交付必须告知用户：NapCat 终端出新二维码=手机重扫）；30 条踩坑"
 }

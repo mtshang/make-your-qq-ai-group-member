@@ -125,6 +125,16 @@ def run_ps_pids(ps_pipeline, tag):
     return pids
 
 
+def norm_win_path(p):
+    """Windows 路径归一化：正斜杠→反斜杠、去尾分隔符。
+
+    deploy_state.json 里路径常写成 D:/x/y（正斜杠），而进程真实镜像路径、
+    CommandLine 永远是反斜杠——直接拿来 Contains/-like 匹配必然漏（实测踩坑：
+    QQ.exe 显示 PID - 但服务活着）。所有"拿 cfg 路径去匹配进程"的入口必须先过这里。
+    """
+    return (p or "").replace("/", "\\").strip().rstrip("\\")
+
+
 def load_config():
     # 依次找: 脚本同目录 -> 脚本上一级（.bot_runtime 副本模式的部署目录）-> 当前目录
     # deploy_state.json 优先，bot_manager.json 兼容旧部署
@@ -192,7 +202,7 @@ def qq_pids_by_image_path(napcat_root):
     """
     import ctypes
     from ctypes import wintypes
-    root = (napcat_root or "").lower().rstrip("\\")
+    root = norm_win_path(napcat_root).lower()
     if not root:
         return []
     k32 = ctypes.windll.kernel32
@@ -237,7 +247,7 @@ def napcat_qq_pids(napcat_root):
     主力 ctypes 直调 Windows API（不 spawn 子进程，沙箱免疫）；
     PowerShell 单语句查询降为并集补充（无沙箱环境两者结果一致）。
     """
-    root = (napcat_root or "").lower().rstrip("\\")
+    root = norm_win_path(napcat_root).lower()
     if not root:
         return []
     result = set(qq_pids_by_image_path(root))
@@ -357,7 +367,7 @@ def ensure_console_bat(base, use_relative=True):
 def cmd_status(cfg, base=None):
     dash = listening_pids(DASH_PORT)
     ws = listening_pids(WS_PORT)
-    nc_root = cfg.get("napcat_root", "").strip()
+    nc_root = norm_win_path(cfg.get("napcat_root"))
     # WS 连接兜底：沙箱里 PowerShell 探测可能失灵（假阴性 STOPPED），
     # AstrBot 在监听时若有 ESTABLISHED 到 6199 的连接，NapCat 就是活的
     ws_clients = pids_connected_to(WS_PORT) if dash else []
@@ -415,7 +425,7 @@ def qq_pids_by_title():
 
 def cmd_kill_napcat(cfg, base=None):
     """只杀 NapCat：napcat 目录下的 QQ.exe（cmdline/路径/唯一标题三重定位）+ napcat 相关 bat 残留窗口。"""
-    nc_root = (cfg.get("napcat_root") or "").strip()
+    nc_root = norm_win_path(cfg.get("napcat_root"))
     if nc_root:
         qq = napcat_qq_pids(nc_root)
         by_title = [p for p in qq_pids_by_title() if p not in qq]
@@ -474,7 +484,7 @@ def cmd_start(cfg, base):
             "窗口消失或停在 pause 才是启动失败，把窗口报错发出来")
 
     nc_root = (cfg.get("napcat_root") or "").strip()
-    shell_dir = (cfg.get("napcat_shell_dir") or "").strip()
+    shell_dir = norm_win_path(cfg.get("napcat_shell_dir"))
     if not nc_root or not shell_dir:
         log("[跳过] NapCat 未配置（napcat_root/napcat_shell_dir 为空，Phase 6 装完回填）——本次只启动 AstrBot")
     else:
@@ -514,7 +524,7 @@ def cmd_scan(cfg, base):
     部署期 agent 用这个启动扫码，**禁止自己手动 cd + start napcat.bat**——
     手动跑的路径/cwd 事故（「Windows 找不到文件 napcat.bat」、bootmain 陷阱）全由本命令规避。
     """
-    shell_dir = (cfg.get("napcat_shell_dir") or "").strip()
+    shell_dir = norm_win_path(cfg.get("napcat_shell_dir"))
     if not shell_dir or not os.path.isdir(shell_dir):
         log(f"[错误] napcat_shell_dir 未回填或不存在: {shell_dir}——先完成 Phase 6 安装并把目录写进 deploy_state.json")
         return 1
