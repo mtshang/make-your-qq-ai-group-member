@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "updated": "2026-10-08",
-  "notes": "路径匹配升级双向归一化 path_contains（正反斜杠折叠统一再比，等价两种形式各试一次，配置/进程路径风格混用不漏；PS 侧 Replace 链保持单语句不触发沙箱 ParserError）；7 用例单测全过+真实进程复验；30 条踩坑"
+  "notes": "新增备选协议端观察名单 alternative-protocols.md（SnowLuma 调研：唯一有更稳实证的方案但闭源组件+EULA 禁自动化部署，合规形态=安装/启动/扫码留用户手动；Lagrange/LLBot/官方 bot 一句话档案；决策原则=账号质量>框架选择）；C9 加频繁被踢处理指针；30 条踩坑"
 }

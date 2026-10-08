@@ -52,6 +52,7 @@ make-your-qq-ai-group-member/
 ├── version.json              # skill 版本号（开工时 agent 与 GitHub 远端比对，有新版自动拉取）
 ├── references/
 │   ├── pitfalls.md           # 30 条真实踩坑记录（出问题先查它）
+│   ├── alternative-protocols.md # 备选协议端观察名单（频繁被风控踢时才看）
 │   ├── config-params.md      # 全部配置参数说明（想调"话多话少"看这个）
 │   └── *-readme.md           # 三个上游组件的 README 存档（可脚本更新）
 ├── templates/                # 预置配置模板（已脱敏、含占位符）
