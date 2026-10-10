@@ -4,6 +4,8 @@
 
 这是一个 **Agent Skill**（智能体技能包）：把它喂给任意支持 Skill 的 AI Agent（WorkBuddy、Claude Code 等），Agent 会按 `SKILL.md` 里的流程自动完成全部部署——下载组件、铺配置、装插件、启动服务、引导扫码，最后交付一个能落地的 QQ 群聊机器人。
 
+无需手动配置，无需写代码，全程只需提供：**一个 QQ 小号 + 一个大模型 API key**，以及**你照着 AI 说的去做**。
+
 ## 小白必看（零Git基础一键配置）
 
 把下面整段话复制给你的 Agent，它会自己搞定下载并直接开始部署（按顺序试、成功即停、全失败会停下报告，不会卡住）：
@@ -15,8 +17,6 @@
 > ② git clone --depth 1 https://github.com/mtshang/make-your-qq-ai-group-member.git
 > ③ 浏览器/下载工具拉 zip：https://github.com/mtshang/make-your-qq-ai-group-member/archive/refs/heads/main.zip（镜像前缀同样轮换）
 > 全失败就停下把报错告诉我，不许卡住。下载完告诉我文件夹位置。同时下载完成后按照 SKILL.md 流程帮我部署这个项目。
-
-无需手动配置，无需写代码，全程只需提供：**一个 QQ 小号 + 一个大模型 API key + 跟着 Agent 走**。
 
 ## 最终效果
 

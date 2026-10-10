@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "updated": "2026-10-10",
-  "notes": "README 小白话术升级为开篇独立大节'小白必看（零Git基础一键配置）'（紧跟介绍语、快速开始恢复原状）——小白第一眼就能看到一键话术；30 条踩坑"
+  "notes": "README 开篇文案定稿：'无需手动配置…'句改措辞（结尾改'你照着 AI 说的去做'）并从'小白必看'节移回介绍区（介绍段紧后），小白必看节纯话术；30 条踩坑"
 }
