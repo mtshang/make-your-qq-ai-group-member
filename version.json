@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "updated": "2026-10-10",
-  "notes": "小白下载话术按用户定稿更新：镜像 clone 提到第①位（国内直连大概率挂）、直连降②位、话术末尾衔接'按 SKILL.md 流程部署'一条龙（行为约定第 8 条兜底命令行要求）；保留分步用法与手动 zip 兜底说明；30 条踩坑"
+  "notes": "README 小白话术升级为开篇独立大节'小白必看（零Git基础一键配置）'（紧跟介绍语、快速开始恢复原状）——小白第一眼就能看到一键话术；30 条踩坑"
 }
