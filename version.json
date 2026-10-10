@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "updated": "2026-10-10",
-  "notes": "行为约定新增第 8 条：只用命令行范式禁 GUI 自动化（README 话术在 SKILL 落地，桌面 Agent 红线）；观察名单补维护者决策（不做 SnowLuma 迁移，若频繁掉线另起新 skill）；30 条踩坑"
+  "notes": "README 快速开始新增不懂 GitHub 的小白下载话术（镜像轮换+直连+zip 三级顺序+失败即停，含手动 zip 下载兜底与镜像寿命提示）；30 条踩坑"
 }

@@ -30,6 +30,19 @@ QQ 好友/群聊
 ## 快速开始
 
 1. **获取本仓库**（`Code` → `Download ZIP`，或 `git clone`）并解压
+
+   **不懂 GitHub / 不知道怎么下载？** 把下面整段话复制给你的 Agent，它会自己搞定（按顺序试、成功即停、全失败会停下报告，不会卡住）：
+
+   > 帮我下载一个项目文件夹，放到 `D:\skill\` 目录（没有就创建）：
+   > https://github.com/mtshang/make-your-qq-ai-group-member
+   > 按顺序试，哪步成功就停：
+   > ① git clone --depth 1 https://github.com/mtshang/make-your-qq-ai-group-member.git
+   > ② 上面的链接前面加镜像站前缀再 clone，镜像站轮换尝试：https://ghfast.top/ 和 https://gh-proxy.com/
+   > ③ 浏览器/下载工具拉 zip：https://github.com/mtshang/make-your-qq-ai-group-member/archive/refs/heads/main.zip（镜像前缀同样轮换）
+   > 全失败就停下把报错告诉我，不许卡住。下载完告诉我文件夹位置。
+
+   下载完成后回到第 2 步（把文件夹交给 Agent）。完全不用 Agent 的手动下载：浏览器直接打开第 ③ 步的 zip 链接（打不开就在链接前加镜像前缀再试），解压即可。注意镜像站寿命长短不一，哪天两个镜像都失效属正常——话术里的直连和 zip 链接仍可能可用，也可以自行替换其他常见 GitHub 镜像前缀。
+
 2. **交给你的 Agent**（按所用的 Agent 选择）：
 
    | Agent | 接入方式 |
