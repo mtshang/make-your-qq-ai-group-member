@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.5.5",
-  "updated": "2026-10-10",
-  "notes": "README 开篇文案定稿：'无需手动配置…'句改措辞（结尾改'你照着 AI 说的去做'）并从'小白必看'节移回介绍区（介绍段紧后），小白必看节纯话术；30 条踩坑"
+  "version": "1.6.0",
+  "updated": "2026-10-12",
+  "notes": "启动器内置 Python 探测链修实测翻车：双击报 'Python was not found'（官方装 Python 没勾 Add to PATH 时只剩 py 启动器可见/或 Store 假别名）——py -3 → python → WorkBuddy 运行时通配 → LOCALAPPDATA 常见路径，命中回显、全失败给安装指引；Phase 8 交付验证加'双击视角 py -3 必须可用'；新坑 C10；31 条踩坑"
 }

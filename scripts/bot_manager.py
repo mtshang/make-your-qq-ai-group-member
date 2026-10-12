@@ -342,13 +342,30 @@ def ensure_console_bat(base, use_relative=True):
         manager = ("%~dp0.bot_runtime\\bot_manager.py" if use_relative
                    else os.path.abspath(__file__))
         # 注意：bat 里满是 %~dp0 / %choice% 这类字面 %，绝不能用 % 格式化，用 f-string
+        # Python 探测链：双击环境的 PATH 常没有 python 命令——官方安装没勾 "Add to PATH"
+        # 时只有 py 启动器全局可见，或 PATH 里只有 Microsoft Store 假别名（报
+        # "Python was not found"）。依次试 py -3 / python / WorkBuddy 运行时 / 常见安装路径。
         content = (
             '@echo off\r\n'
             'chcp 936 >nul\r\n'
+            'setlocal\r\n'
             'title qqaibot 机器人启动\r\n'
             'cd /d "%~dp0"\r\n'
-            'echo [双击默认动作] 正在启动机器人（自动清理残留）...\r\n'
-            f'python "{manager}" start\r\n'
+            'set "PY="\r\n'
+            'py -3 --version >nul 2>&1 && set "PY=py -3"\r\n'
+            'if not defined PY python --version >nul 2>&1 && set "PY=python"\r\n'
+            'if not defined PY for /d %%D in ("%USERPROFILE%\\.workbuddy\\binaries\\python\\versions\\*") do if not defined PY if exist "%%D\\python.exe" set "PY=%%D\\python.exe"\r\n'
+            'if not defined PY if exist "%LOCALAPPDATA%\\Programs\\Python\\Python313\\python.exe" set "PY=%LOCALAPPDATA%\\Programs\\Python\\Python313\\python.exe"\r\n'
+            'if not defined PY if exist "%LOCALAPPDATA%\\Programs\\Python\\Python312\\python.exe" set "PY=%LOCALAPPDATA%\\Programs\\Python\\Python312\\python.exe"\r\n'
+            'if not defined PY (\r\n'
+            '  echo [错误] 没找到可用的 Python（可能只装了 Microsoft Store 的占位别名）。\r\n'
+            '  echo 解决：到 python.org 下载 Python 3.12+ 安装，安装首页务必勾选 "Add python.exe to PATH"，\r\n'
+            '  echo 装完后关掉本窗口重新双击即可。\r\n'
+            '  pause\r\n'
+            '  exit /b 1\r\n'
+            ')\r\n'
+            'echo [启动] 使用解释器: %PY%\r\n'
+            f'%PY% "{manager}" start\r\n'
             'echo.\r\n'
             ':menu\r\n'
             'echo.\r\n'
@@ -363,9 +380,9 @@ def ensure_console_bat(base, use_relative=True):
             'echo   ======================================\r\n'
             'set "choice="\r\n'
             'set /p choice=请输入数字后回车: \r\n'
-            f'if "%choice%"=="1" python "{manager}" start\r\n'
-            f'if "%choice%"=="2" python "{manager}" stop\r\n'
-            f'if "%choice%"=="3" python "{manager}" status\r\n'
+            f'if "%choice%"=="1" %PY% "{manager}" start\r\n'
+            f'if "%choice%"=="2" %PY% "{manager}" stop\r\n'
+            f'if "%choice%"=="3" %PY% "{manager}" status\r\n'
             'if "%choice%"=="0" exit\r\n'
             'goto menu\r\n'
         )

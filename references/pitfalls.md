@@ -216,6 +216,11 @@
 - **解决**：用户手机 QQ 扫 NapCat 终端里的新二维码即可，扫完自动重连不用重启；终端没出码/渲染失败走 C4（捞落盘 qrcode.png）。**交付时必须把这条当运维常识告知用户："时不时瞄一眼 NapCat 终端，看到二维码 = 手机扫一下"**。agent 排查"bot 不回消息"时也先查这个：先 `status`（AstrBot 活着 + NapCat 状态）再看 NapCat 窗口有没有新码，**别上来就杀进程重启**——新码要扫、服务死了才重启，两条处理路径完全不同。
 - **频繁被踢（重扫成为日常）时**：先按 `references/alternative-protocols.md` 的决策原则处理（排除 C7 配置问题 → 养号），仍不行再看该名单里的备选协议端调研（SnowLuma 等）——当前 NapCat 稳定就不要折腾换端。
 
+### C10. 双击启动器报 "Python was not found"（Windows Store 别名陷阱，实测翻车）
+- **症状**：双击 `机器人启动.bat`，打印 `[双击默认动作] 正在启动机器人...` 后立刻报 `Python was not found; run without arguments to install from the Microsoft Store...`，服务没起来。
+- **根因**：旧版启动器裸调 `python`，赌的是双击进程的 PATH。但很多机器官方 Python 安装时没勾 "Add python.exe to PATH"——**只有 py 启动器（py.exe，装在 C:\Windows）全局可见**；或者 PATH 里只有 Microsoft Store 的假别名（App execution aliases），裸 `python` 命中占位存根直接报错。**agent 会话里 python 能用不算数**——agent 环境可能自带/注入运行时，双击走的是用户双击时的系统 PATH，两个世界。
+- **解决**：启动器已内置 **Python 探测链**：`py -3` → `python` → WorkBuddy 运行时目录通配 → `%LOCALAPPDATA%\Programs\Python\Python31x` 常见安装路径，命中即用并回显解释器；全失败时给出 python.org 安装指引（强调勾 "Add to PATH"）后 pause。**实测**：一台机器 `python` 报 not found 但 `py -3` = 3.14.7，探测链第一层命中，双击恢复。**部署期 Phase 8 交付验证必须查双击视角**（`py -3 --version` 能用即可交付——py.exe 系统级可见；`python` 在 agent 会话里可用不代表双击可用），没有就引导用户装 python.org 的 Python 后重验。
+
 ## D. 运行期
 
 ### D1. 私聊没反应（群聊正常）
