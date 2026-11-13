@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "updated": "2026-11-13",
-  "notes": "上游生态变动公告：README 顶部提醒 SnowLuma 已删库（仓库 404 实测）+ AstrBot 可能停更/删库（仓库与 PyPI 目前仍在）；SKILL 开头上游可用性预警（AstrBot 配置阶段异常先怀疑上游不可用+探测判别法）；观察名单 SnowLuma 条目标注删库存档；31 条踩坑"
+  "notes": "上游变动公告统一加时间戳（2026 年 11 月）：README 顶部/SKILL 开工预警/观察名单 SnowLuma 条目——读者可判断信息时效；31 条踩坑"
 }
