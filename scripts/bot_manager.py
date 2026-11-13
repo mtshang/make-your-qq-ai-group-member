@@ -5,6 +5,7 @@ bot_manager.py — 一键启动/停止 AstrBot + NapCat（QQ AI 群聊机器人�
 用法（部署全程 + 日常都在用，命令总览）:
     python bot_manager.py start          先清残留再全新启动：AstrBot 先，NapCat 后（各开独立窗口）
     python bot_manager.py scan           扫码模式：用 napcat.bat 开窗口出二维码（部署期 Phase 6 用）
+    python bot_manager.py scan_bat       只生成"扫码登录.bat"给用户双击（沙箱里 scan 开不了窗时用，见 pitfalls C11）
     python bot_manager.py stop           全停：NapCat(QQ) 先，AstrBot 后
     python bot_manager.py status         查看两个服务当前状态
     python bot_manager.py kill_astrbot   只杀 AstrBot（含残留启动窗口）
@@ -573,6 +574,52 @@ def cmd_scan(cfg, base):
     return 0
 
 
+def cmd_scan_bat(cfg, base):
+    """只生成"给用户双击的扫码 bat"，不执行 scan——绕过 agent 沙箱对 cmd 启动的限制。
+
+    沙箱形态（实测翻车）：scan 内部 `cmd /c start` 被沙箱限制，表现为
+    `'napcat.bat' 不是内部或外部命令`（假 bug——不是路径/换行符/编码问题，
+    别去改这些）。生成 $INSTALL\\扫码登录.bat 让用户双击 = 用户环境无沙箱，
+    scan 正常开窗出码。部署期 agent 在沙箱里遇到该报错，走本命令即可。
+    """
+    shell_dir = norm_win_path(cfg.get("napcat_shell_dir"))
+    if not shell_dir or not os.path.isdir(shell_dir):
+        log(f"[错误] napcat_shell_dir 未回填或不存在: {shell_dir}——先完成 Phase 6 安装并把目录写进 deploy_state.json")
+        return 1
+    ensure_runtime_copy(base)   # bat 用相对路径调 .bot_runtime\bot_manager.py，先确保副本在
+    manager = "%~dp0.bot_runtime\\bot_manager.py"
+    bat_path = os.path.join(base, "扫码登录.bat")
+    content = (
+        '@echo off\r\n'
+        'chcp 936 >nul\r\n'
+        'setlocal\r\n'
+        'title qqaibot 扫码登录（双击即可）\r\n'
+        'cd /d "%~dp0"\r\n'
+        'set "PY="\r\n'
+        'py -3 --version >nul 2>&1 && set "PY=py -3"\r\n'
+        'if not defined PY python --version >nul 2>&1 && set "PY=python"\r\n'
+        'if not defined PY for /d %%D in ("%USERPROFILE%\\.workbuddy\\binaries\\python\\versions\\*") do if not defined PY if exist "%%D\\python.exe" set "PY=%%D\\python.exe"\r\n'
+        'if not defined PY if exist "%LOCALAPPDATA%\\Programs\\Python\\Python313\\python.exe" set "PY=%LOCALAPPDATA%\\Programs\\Python\\Python313\\python.exe"\r\n'
+        'if not defined PY if exist "%LOCALAPPDATA%\\Programs\\Python\\Python312\\python.exe" set "PY=%LOCALAPPDATA%\\Programs\\Python\\Python312\\python.exe"\r\n'
+        'if not defined PY (\r\n'
+        '  echo [错误] 没找到可用的 Python（可能只装了 Microsoft Store 的占位别名）。\r\n'
+        '  echo 解决：到 python.org 下载 Python 3.12+ 安装，安装首页务必勾选 "Add python.exe to PATH"，装完关掉本窗口重新双击。\r\n'
+        '  pause\r\n'
+        '  exit /b 1\r\n'
+        ')\r\n'
+        'echo [扫码] 正在打开 NapCat 扫码窗口（请用 bot 小号扫码；登录成功前别关 NapCat 窗口）...\r\n'
+        f'%PY% "{manager}" scan\r\n'
+        'echo.\r\n'
+        'echo [提示] 如果 NapCat 窗口已打开并显示二维码，本窗口可以直接关掉。\r\n'
+        'pause\r\n'
+    )
+    with open(bat_path, "w", encoding="gbk", errors="replace") as f:
+        f.write(content)
+    log(f"[已生成] 扫码登录 bat: {bat_path}")
+    log("[给用户] 请双击「扫码登录.bat」，用 bot 小号扫码；扫完告诉我「好了」继续")
+    return 0
+
+
 def cmd_stop(cfg, base=None):
     cmd_kill_napcat(cfg, base)
     time.sleep(1)
@@ -583,14 +630,15 @@ def cmd_stop(cfg, base=None):
 
 def main():
     cmd = sys.argv[1].lower() if len(sys.argv) > 1 else ""
-    if cmd not in ("start", "stop", "status", "scan", "kill_astrbot", "kill_napcat"):
+    if cmd not in ("start", "stop", "status", "scan", "scan_bat",
+                   "kill_astrbot", "kill_napcat"):
         print(__doc__)
         sys.exit(2)
     cfg, base = load_config()
     use_rel = ensure_runtime_copy(base)   # 先落运行时副本（双击 bat 用相对路径调它）
     ensure_console_bat(base, use_rel)   # 任意命令都刷新双击入口
     return {"start": cmd_start, "stop": cmd_stop, "status": cmd_status,
-            "scan": cmd_scan,
+            "scan": cmd_scan, "scan_bat": cmd_scan_bat,
             "kill_astrbot": cmd_kill_astrbot, "kill_napcat": cmd_kill_napcat}[cmd](cfg, base)
 
 

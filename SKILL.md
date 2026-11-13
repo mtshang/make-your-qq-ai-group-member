@@ -360,6 +360,7 @@ Set-Location '<INSTALL>'; python '<skill目录>\scripts\bot_manager.py' start
    Set-Location '<INSTALL>'; python '<skill目录>\scripts\bot_manager.py' scan
    ```
    scan 按 deploy_state 里的 `napcat_shell_dir`（步骤 2 **实测**回填；`NapCat.<构建号>.Shell` 的数字随版本变）定位 `napcat.bat` 开窗口——bootmain 陷阱（pitfalls C1）与路径错误由它规避，**不要自己手动 start napcat.bat**。
+   - **⚠ 沙箱形态兜底（实测：agent 被这个假 bug 卡很久）**：如果 `scan` 输出里出现 `'napcat.bat' 不是内部或外部命令，也不是可运行的程序或批处理文件`——**这不是路径 / 换行符 / 编码 bug，是 agent 沙箱限制了 cmd 启动新窗口**（pitfalls C11）。立刻停止排查路径转义（别在这上面耗时间），改用：`python '<skill目录>\scripts\bot_manager.py' scan_bat`——它只在 `$INSTALL` 下生成 `扫码登录.bat`（自带 Python 探测链、相对路径调运行时副本），**把话术换成让用户双击这个 bat**（用户环境无沙箱，双击后 scan 正常开窗出码），说完同样结束回复等用户回"扫完了"。
    - **⚠⚠ 本阶段是"交还控制权"节点（实测有 agent 在这里卡着思考空转）**：开窗 + 话术发完，**立刻结束本轮回复停下来等用户**——扫码是人拿手机扫的物理动作，agent 卡着思考/空转轮询毫无意义。话术一次性包含三个约定：「二维码窗口出现了，请用**手机 QQ（bot 小号）**扫码——**扫前确认是小号**，扫错成大号立刻下线重扫；**扫完回我一声"扫完了"**；**等了约一分钟没看见二维码也直接告诉我**，我会重启一次（第二次必出码）」。
    - **收到"扫完了"才继续步骤 4（读号）**；用户报告没出码 → 按序处理：① 找 Shell 目录下落盘的 `qrcode.png`（`*.png`），有就把图发给用户扫（pitfalls C4）；② 没有就**重跑一次 `scan`**（自带先杀再启，第二次终端必出码，实测）——别反复杀重试（C5 规矩）。
    - 屏幕上有停在 `Press any key` 的旧窗口不用管——那是已死进程的残留，scan/start/kill_napcat 都会自动清掉。
@@ -445,6 +446,7 @@ bot_manager 从 Phase 5 起就是**全程骨架**（启动/扫码/停止/清理�
 ```
 python bot_manager.py start          先清残留再全新启动：AstrBot 先（等 WebUI 就绪）→ NapCat 后（各开独立窗口）
 python bot_manager.py scan           扫码模式：用 napcat.bat 出二维码（部署期 Phase 6 用）
+python bot_manager.py scan_bat       只生成「扫码登录.bat」给用户双击（沙箱里 scan 开不了窗时用，C11）
 python bot_manager.py stop           全停：NapCat(QQ.exe) 先，AstrBot 后
 python bot_manager.py status         只读探测两服务状态
 python bot_manager.py kill_astrbot   只杀 AstrBot（含残留启动窗口）

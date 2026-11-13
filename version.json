@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.6.4",
+  "version": "1.7.0",
   "updated": "2026-11-13",
-  "notes": "告知原话按用户定稿改写（'因部分原因'开头、AstrBot 定位改为机器人框架并标注本 skill 正在使用、SnowLuma 标注与本 skill 无关）；31 条踩坑"
+  "notes": "新增 bot_manager scan_bat 命令（沙箱形态兜底）：只生成「扫码登录.bat」给用户双击，绕过 agent 沙箱对 cmd 启动的限制；SKILL Phase 6 步骤 3 加沙箱分支（'napcat.bat' 不是内部或外部命令 = 假 bug，禁排查换行符/编码）；新坑 C11；32 条踩坑"
 }

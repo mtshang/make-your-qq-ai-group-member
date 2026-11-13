@@ -221,6 +221,11 @@
 - **根因**：旧版启动器裸调 `python`，赌的是双击进程的 PATH。但很多机器官方 Python 安装时没勾 "Add python.exe to PATH"——**只有 py 启动器（py.exe，装在 C:\Windows）全局可见**；或者 PATH 里只有 Microsoft Store 的假别名（App execution aliases），裸 `python` 命中占位存根直接报错。**agent 会话里 python 能用不算数**——agent 环境可能自带/注入运行时，双击走的是用户双击时的系统 PATH，两个世界。
 - **解决**：启动器已内置 **Python 探测链**：`py -3` → `python` → WorkBuddy 运行时目录通配 → `%LOCALAPPDATA%\Programs\Python\Python31x` 常见安装路径，命中即用并回显解释器；全失败时给出 python.org 安装指引（强调勾 "Add to PATH"）后 pause。**实测**：一台机器 `python` 报 not found 但 `py -3` = 3.14.7，探测链第一层命中，双击恢复。**部署期 Phase 8 交付验证必须查双击视角**（`py -3 --version` 能用即可交付——py.exe 系统级可见；`python` 在 agent 会话里可用不代表双击可用），没有就引导用户装 python.org 的 Python 后重验。
 
+### C11. 沙箱里 scan 报 `'napcat.bat' 不是内部或外部命令`（假 bug，实为沙箱限制 cmd 启动）
+- **症状**：agent 跑 `bot_manager.py scan` 后输出 `'napcat.bat' 不是内部或外部命令，也不是可运行的程序或批处理文件`，NapCat 扫码窗口没出现。agent 容易误判成路径/换行符/编码/转义问题——**实测有 agent 在这上面卡了很久**。
+- **根因**：不是 bug。scan 内部要用 `cmd /c start` 开新窗口执行挂载的 bat，**agent 沙箱会限制 cmd.exe 的启动/新窗口创建**（与 B8 同源的沙箱限制），那段报错只是 cmd 在沙箱里执行不了 bat 的表象。路径、编码、换行符都是好的，排查这些是浪费生命。
+- **解决**：跑 `python <skill目录>\scripts\bot_manager.py scan_bat`——只在 `$INSTALL` 下生成 `扫码登录.bat`（带 Python 探测链、相对路径调运行时副本），**让用户双击**（用户环境无沙箱 → scan 正常开窗出码，C4/C8 的规矩照旧）；话术说完结束回复等用户回话。**判别口诀：沙箱内 scan 报 napcat.bat 错误 → 不查路径不查编码，直接 scan_bat + 请用户双击。**
+
 ## D. 运行期
 
 ### D1. 私聊没反应（群聊正常）
