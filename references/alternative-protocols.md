@@ -6,9 +6,11 @@
 >
 > **决策原则（社区共识，实测帖反复验证）**：账号质量 > 框架选择。换端之前先按顺序排除：① C7（quick.bat 占位号没改导致每次重启扫码——那是配置问题，换什么端都没用）② 养号（少群发、常用设备+常用 IP、让号变"常用号"）③ 同号多开互踢 C5。全排除了再回来看这份名单。
 
-## SnowLuma（观察名单第一名，唯一有"比 NapCat 更稳"实证的方案）
+## SnowLuma（⚠️ 2026-11 已删库，仅作历史调研记录）
 
-- **是什么**：独立 OneBot v11 协议端（TypeScript 互操作运行时），把 QQ 原生会话转成 OneBot v11 动作/事件，经 WebSocket/HTTP/WebUI/SDK/MCP 统一接入。2025-06 创建，约 1.1k star（上升期）。仓库 <https://github.com/SnowLuma/SnowLuma>
+> **2026-11 更新：SnowLuma 的 GitHub 仓库已删除（404），本项目已无法获取。** 本条目保留仅作历史存档——若将来出现分叉/镜像再评估。这也印证了上面"协议端生态不稳定"的判断：**备份和自包含才是长期主义**。
+
+- **是什么**：独立 OneBot v11 协议端（TypeScript 互操作运行时），把 QQ 原生会话转成 OneBot v11 动作/事件，经 WebSocket/HTTP/WebUI/SDK/MCP 统一接入。2025-06 创建，约 1.1k star（上升期）。仓库 <https://github.com/SnowLuma/SnowLuma>（已 404）
 - **背景硬**：NapCat 作者参与了开发；NapCat 官方 README 推荐它作为替代品；参考了 LagrangeV2 协议定义 + NapCatQQ 实现思路
 - **风控口碑**：linux.do 多条一手实测——"NapCat/LLBot 老被踢下线，换了 SnowLuma 就再没掉过"。但**样本是幸存者偏差级别，无机制保证**：风控玄学（同号同端 Windows 一小时封、Linux+Docker 稳 8 个月后突然又掉）
 - **事实修正**：它**仍需接入 QQ 客户端进程**（README 原文"面向 QQ 客户端""按引导接入 QQ 进程"），不是无 QQ 纯协议实现（那是 Lagrange 路线）——风控本质上仍是"非官方客户端"同类风险

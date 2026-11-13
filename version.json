@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.6.0",
-  "updated": "2026-10-12",
-  "notes": "启动器内置 Python 探测链修实测翻车：双击报 'Python was not found'（官方装 Python 没勾 Add to PATH 时只剩 py 启动器可见/或 Store 假别名）——py -3 → python → WorkBuddy 运行时通配 → LOCALAPPDATA 常见路径，命中回显、全失败给安装指引；Phase 8 交付验证加'双击视角 py -3 必须可用'；新坑 C10；31 条踩坑"
+  "version": "1.6.1",
+  "updated": "2026-11-13",
+  "notes": "上游生态变动公告：README 顶部提醒 SnowLuma 已删库（仓库 404 实测）+ AstrBot 可能停更/删库（仓库与 PyPI 目前仍在）；SKILL 开头上游可用性预警（AstrBot 配置阶段异常先怀疑上游不可用+探测判别法）；观察名单 SnowLuma 条目标注删库存档；31 条踩坑"
 }
