@@ -616,7 +616,7 @@ def cmd_scan_bat(cfg, base):
     with open(bat_path, "w", encoding="gbk", errors="replace") as f:
         f.write(content)
     log(f"[已生成] 扫码登录 bat: {bat_path}")
-    log("[给用户] 请双击「扫码登录.bat」，用 bot 小号扫码；扫完告诉我「好了」继续")
+    log("[给用户] 请双击「扫码登录.bat」，用 bot 小号扫码；扫完回「扫完了」继续")
     return 0
 
 

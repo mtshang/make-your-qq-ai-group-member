@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "updated": "2026-11-13",
-  "notes": "新增 bot_manager scan_bat 命令（沙箱形态兜底）：只生成「扫码登录.bat」给用户双击，绕过 agent 沙箱对 cmd 启动的限制；SKILL Phase 6 步骤 3 加沙箱分支（'napcat.bat' 不是内部或外部命令 = 假 bug，禁排查换行符/编码）；新坑 C11；32 条踩坑"
+  "notes": "沙箱扫码兜底话术明确写死（原话：请双击 <INSTALL>\\扫码登录.bat，用小号扫码，扫完回'扫完了'，一分钟没码也告诉我）；脚本 log 措辞对齐；32 条踩坑"
 }
