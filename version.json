@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "updated": "2026-11-13",
-  "notes": "SKILL 上游预警升级为强制告知义务：配置开始前 + 配置结束后（无论成功失败）各主动告知用户一次原话（SnowLuma 已删库 / AstrBot 可能停更删库）；31 条踩坑"
+  "notes": "告知原话按用户定稿改写（'因部分原因'开头、AstrBot 定位改为机器人框架并标注本 skill 正在使用、SnowLuma 标注与本 skill 无关）；31 条踩坑"
 }
