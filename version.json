@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "updated": "2026-11-13",
-  "notes": "上游变动公告统一加时间戳（2026 年 11 月）：README 顶部/SKILL 开工预警/观察名单 SnowLuma 条目——读者可判断信息时效；31 条踩坑"
+  "notes": "SKILL 上游预警升级为强制告知义务：配置开始前 + 配置结束后（无论成功失败）各主动告知用户一次原话（SnowLuma 已删库 / AstrBot 可能停更删库）；31 条踩坑"
 }
