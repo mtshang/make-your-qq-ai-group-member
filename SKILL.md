@@ -7,13 +7,13 @@ description: 一键部署免费 QQ AI 群聊机器人全链路（AstrBot + NapCa
 
 把一个 QQ 小号变成有"人设"、会读空气的 AI 群聊机器人。全组件免费开源。
 
-> ⚠️ **上游可用性预警（2026 年 11 月，开工必读）**：AstrBot 上游近期可能停止更新甚至删库（SnowLuma 已删库）。
+> ⛔ **本 skill 已失效（2026 年 11 月 14 日）**：**NapCatQQ 已删库**——GitHub 上所有发行版（releases）与标签（tags）已全部删除，官方不再提供任何下载途径。本 skill 的部署核心依赖 NapCat（QQ 协议端），**没有 NapCat 就无法部署，本 skill 已无法完成它的使命**。已部署成功的老部署不受影响（本地自包含）。
 >
 > **必须主动告知用户这条消息两次——配置开始前一次，配置结束后（无论成功还是失败）再告知一次**，原话：
 >
-> 「因部分原因，AstrBot（本 skill 目前使用的机器人框架）未来可能停止更新甚至删库（目前仓库仍可访问，但请有心理预期）；SnowLuma（与本 skill 无关的备选协议端）的 GitHub 仓库已删除。」
+> 「因部分原因，**这个 skill 已经失效了**：它需要使用 NapCat（QQ 协议端），但 NapCat 官方已删库、不再提供任何下载途径（无法下载），所以这个 skill 无法再完成部署。另外提醒：SnowLuma（与本 skill 无关的备选协议端）的 GitHub 仓库已删除；AstrBot 未来也可能停止更新甚至删库（目前仓库仍可访问，但请有心理预期）。如果你已经部署成功，现有机器人不受影响、可以继续使用。」
 >
-> **配置 AstrBot 阶段如果出现下载失败、`uv tool install` 装不上、插件拉取 404 等异常，先怀疑上游仓库不可用**，而不是环境问题——如实向用户说明现状，别无休止重试。判别方式：`curl -s --max-time 10 https://pypi.org/pypi/astrbot/json` 和仓库页面各探一次，全挂就是上游没了；已部署成功的老部署不受影响（本地脚本自包含）。
+> **不要尝试继续部署**：NapCat 下载不到，继续走流程只会白白浪费时间——遇到下载失败立即按上面的原话告知用户并停止。判别方式：`curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://github.com/NapNeko/NapCatQQ/releases/latest/download/NapCat.Shell.Windows.OneKey.zip` 返回 404 即下载途径已断（2026-11-14 实测）。
 
 ## 版本检查（开工第一步，失败不阻塞）
 

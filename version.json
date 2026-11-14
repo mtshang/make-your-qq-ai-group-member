@@ -1,7 +1,7 @@
 {
   "name": "make-your-qq-ai-group-member",
   "repo_url": "https://github.com/mtshang/make-your-qq-ai-group-member",
-  "version": "1.7.1",
-  "updated": "2026-11-13",
-  "notes": "沙箱扫码兜底话术明确写死（原话：请双击 <INSTALL>\\扫码登录.bat，用小号扫码，扫完回'扫完了'，一分钟没码也告诉我）；脚本 log 措辞对齐；32 条踩坑"
+  "version": "2.0.0",
+  "updated": "2026-11-14",
+  "notes": "⛔ 本 skill 宣布废弃：NapCatQQ 已删库（实测 releases/tags 全空、OneKey 下载 404），部署路径断绝。README/SKILL 顶置失效公告；告知义务原话更新为'本 skill 已失效 + 需要 NapCat 但官方不提供下载途径所以失效 + SnowLuma/AstrBot 预警 + 老部署不受影响'；SKILL 明确禁止继续部署尝试并给出 404 判别法；32 条踩坑"
 }
